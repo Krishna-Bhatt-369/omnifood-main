@@ -8,8 +8,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // --- SET YOUR PASSWORD HERE ---
-    // Currently set to: admin / omnifood
+    // --- SET PASSWORD ---
     if ($username === 'admin' && $password === 'omnifood') {
         $_SESSION['loggedin'] = true;
         header("Location: admin.php");

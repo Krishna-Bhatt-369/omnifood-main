@@ -1,0 +1,4 @@
+http://localhost/omnifood-main/index.php
+http://localhost/omnifood-main/admin.php
+password: omnifood123
+email: hello@omnifood.com
