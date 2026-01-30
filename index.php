@@ -1,4 +1,24 @@
 <?php
+session_start();
+include 'connect.php';
+
+// HANDLE ORDER SUBMISSION (Logged in users only)
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_SESSION['user_id'])) {
+    $order_items = htmlspecialchars($_POST['hidden_order_items']);
+    $user_id = $_SESSION['user_id'];
+    
+    // Update user's row: Add order items and set status to PENDING
+    $stmt = $conn->prepare("UPDATE cafe SET order_items = ?, payment_status = 'pending', status = 'new' WHERE id = ?");
+    $stmt->bind_param("si", $order_items, $user_id);
+    
+    if ($stmt->execute()) {
+        header("Location: index.php?status=success");
+        exit();
+    }
+}
+?>
+
+<?php
 include 'connect.php';
 
 $message = "";
@@ -61,6 +81,47 @@ if (isset($_GET['status'])) {
     <link rel="stylesheet" href="css/general.css">
     
     <style>
+      /* --- CART MODAL STYLES --- */
+.cart-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 1.6rem;
+}
+
+.btn-remove {
+    background: #ffe3e3;
+    color: #e03131;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.4rem;
+    margin-left: 15px;
+    transition: 0.2s;
+}
+
+.btn-remove:hover {
+    background: #e03131;
+    color: white;
+}
+
+.cart-empty-msg {
+    text-align: center;
+    font-size: 1.8rem;
+    color: #888;
+    padding: 20px;
+}
       /* --- POPUP & CART STYLES --- */
       .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -135,14 +196,18 @@ if (isset($_GET['status'])) {
         <img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo">
       </a>
       <nav class="main-nav">
-        <ul class="main-nav-list">
-          <li><a class="main-nav-link" href="#how">How it works</a></li>
-          <li><a class="main-nav-link" href="#meals">Meals</a></li>
-          <li><a class="main-nav-link" href="#chefs">Our Chefs</a></li>
-          <li><a class="main-nav-link" href="#pricing">Pricing</a></li>
-          <li><a class="main-nav-link nav-cta" href="#cta">Try for free</a></li>
-        </ul>
-      </nav>
+    <ul class="main-nav-list">
+        <li><a class="main-nav-link" href="index.php">Home</a></li>
+        <li><a class="main-nav-link" href="recipes.php">Recipes</a></li>
+        
+        <?php if(isset($_SESSION['user_id'])): ?>
+            <li><span style="font-size:1.6rem; color:#555;">Hi, <?php echo $_SESSION['user_name']; ?></span></li>
+            <li><a class="main-nav-link nav-cta" href="signin.php?logout=true">Logout</a></li>
+        <?php else: ?>
+            <li><a class="main-nav-link nav-cta" href="signin.php">Log in</a></li>
+        <?php endif; ?>
+    </ul>
+</nav>
     </header>
 
     <main>
@@ -313,6 +378,7 @@ if (isset($_GET['status'])) {
             <figure class="gallery-item"><img src="./img/gallery/gallery-11.jpg" alt="Photo of food" /></figure>
             <figure class="gallery-item"><img src="./img/gallery/gallery-12.jpg" alt="Photo of food" /></figure>
         </div>
+        
       </section>
 
       <section class="section-pricing" id="pricing">
@@ -436,8 +502,8 @@ if (isset($_GET['status'])) {
           <p class="footer-heading">Company</p>
           <ul class="footer-nav">
             <li><a class="footer-link" href="#">About Omnifood</a></li>
-            <li><a class="footer-link" href="#">For Business</a></li>
-            <li><a class="footer-link" href="#">Cooking partners</a></li>
+            <li><a class="footer-link" href="business.php">For Business</a></li>
+            <li><a class="footer-link" href="chefs.php">Cooking partners</a></li>
             <li><a class="footer-link" href="#">Careers</a></li>
           </ul>
         </nav>
@@ -451,54 +517,189 @@ if (isset($_GET['status'])) {
         </nav>
       </div>
     </footer>
-
-    <div id="sticky-cart">
-        <div style="font-size: 1.6rem; font-weight: 600;">
-            Cart: <span id="cart-count" style="color:#e67e22">0</span> items 
-            <span id="cart-total" style="color:#555; margin-left:10px;">(Rs. 0)</span>
-        </div>
-        <button onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})" class="cart-btn">Checkout</button>
+    
+  
+    <div id="sticky-cart" onclick="toggleCartModal()" style="display:none; position:fixed; bottom:0; left:0; width:100%; background-color: #333; color: white; padding: 15px 30px; justify-content: space-between; align-items: center; z-index: 9999; cursor: pointer; box-shadow: 0 -5px 20px rgba(0,0,0,0.1);">
+    <div style="font-size: 1.6rem; font-weight: 600;">
+        <ion-icon name="cart-outline" style="font-size: 2.4rem; vertical-align: middle; margin-right: 10px;"></ion-icon>
+        <span id="cart-count">0</span> Items <span id="cart-total" style="color: #e67e22; margin-left: 10px;">(Rs. 0)</span>
     </div>
+    <div style="font-size: 1.6rem; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+        View Cart <ion-icon name="chevron-up-outline"></ion-icon>
+    </div>
+</div>
+<div id="cartModal" class="modal-overlay" style="display: none; z-index: 10000;">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close-btn" onclick="toggleCartModal()">&times;</span>
+        <h2 class="heading-secondary">Your Cart</h2>
+        <ul id="cart-list-container" class="cart-list"></ul>
+        <div style="margin-top: 20px; border-top: 2px solid #fdf2e9; padding-top: 20px; display:flex; justify-content:space-between;">
+            <span style="font-size: 1.8rem; font-weight: 700;">Total:</span>
+            <span id="modal-cart-total" style="font-size: 2rem; font-weight: 700; color: #e67e22;">Rs. 0</span>
+        </div>
+        <button class="btn btn--full" onclick="showQRModal()" style="margin-top: 20px; width: 100%;">Proceed to Checkout</button>
+    </div>
+</div>
 
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-    <script>
-      // 1. MODAL LOGIC
-      function closeModal() {
-        document.getElementById('modalOverlay').style.display = 'none';
-        window.history.replaceState({}, document.title, "index.php");
-      }
+<div id="qrModal" class="modal-overlay" style="display: none; z-index: 10001;">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <span class="close-btn" onclick="closeQRModal()">&times;</span>
+        <h2 class="heading-secondary" style="margin-bottom: 10px;">Scan to Pay</h2>
+        <p style="font-size: 1.6rem; margin-bottom: 20px; color: #555;">Scan this code to complete your payment via Instagram.</p>
+        
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://instagram.com/krishna_bhatt_69" 
+             alt="Payment QR" 
+             style="border: 5px solid #e67e22; border-radius: 10px; margin-bottom: 20px;">
+             
+        <p style="font-size: 1.4rem; color: #888; margin-bottom: 10px;">QR not working?</p>
+        
+        <a href="https://instagram.com/krishna_bhatt_69" target="_blank" 
+           style="display: inline-block; background: #E1306C; color: white; padding: 10px 20px; border-radius: 50px; text-decoration: none; font-size: 1.4rem; font-weight: bold; margin-bottom: 20px;">
+           <ion-icon name="logo-instagram"></ion-icon> Pay @krishna_bhatt_69
+        </a>
 
-      // 2. CART LOGIC
-      let cart = [];
-      function addToCart(name, price) {
+        <button class="btn btn--full" onclick="submitFinalOrder()">
+            I have Scanned & Paid &rarr;
+        </button>
+    </div>
+</div>
+
+<form id="checkout-form" method="POST" style="display:none;">
+    <input type="hidden" name="hidden_order_items" id="hidden-order-items">
+</form>
+
+<script>
+  
+    // --- CART LOGIC ---
+    let cart = [];
+
+    function addToCart(name, price) {
         cart.push({name, price});
-        updateCart();
-      }
-      function updateCart() {
-        const cartBar = document.getElementById('sticky-cart');
-        const countSpan = document.getElementById('cart-count');
-        const totalSpan = document.getElementById('cart-total');
-        const hiddenInput = document.getElementById('hidden-order-items');
+        updateCartUI();
+        // Feedback
+        const btn = event.target; 
+        const originalText = btn.innerText;
+        btn.innerText = "Added!";
+        btn.style.background = "#27ae60";
+        setTimeout(() => { btn.innerText = originalText; btn.style.background = ""; }, 1000);
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartUI();
+    }
+
+    function updateCartUI() {
+        const sticky = document.getElementById('sticky-cart');
+        const count = document.getElementById('cart-count');
+        const total = document.getElementById('cart-total');
+        const input = document.getElementById('hidden-order-items');
 
         if(cart.length > 0) {
-            cartBar.style.display = 'flex';
-            countSpan.innerText = cart.length;
-            
-            let total = cart.reduce((sum, item) => sum + item.price, 0);
-            totalSpan.innerText = "(Rs. " + total.toLocaleString() + ")";
-            
-            // Map items to string for PHP
-            hiddenInput.value = cart.map(i => i.name).join(", ");
+            sticky.style.display = 'flex';
+            count.innerText = cart.length;
+            let sum = cart.reduce((a, b) => a + b.price, 0);
+            total.innerText = "(Rs. " + sum.toLocaleString() + ")";
+            input.value = cart.map(i => i.name).join(", ");
+            renderCartList();
         } else {
-            cartBar.style.display = 'none';
+            sticky.style.display = 'none';
+            input.value = "";
+            renderCartList();
         }
-      }
-    </script>
+    }
+
+    // --- MODAL LOGIC ---
+    function toggleCartModal() {
+        const modal = document.getElementById('cartModal');
+        modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        renderCartList();
+    }
+
+    function renderCartList() {
+        const list = document.getElementById('cart-list-container');
+        const totalEl = document.getElementById('modal-cart-total');
+        list.innerHTML = "";
+        let sum = 0;
+        
+        if(cart.length === 0) {
+            list.innerHTML = "<li style='text-align:center; font-size:1.6rem; color:#888;'>Cart is empty.</li>";
+            totalEl.innerText = "Rs. 0";
+            return;
+        }
+
+        cart.forEach((item, idx) => {
+            sum += item.price;
+            list.innerHTML += `
+                <li style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee; font-size:1.6rem;">
+                    <span>${item.name}</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <strong>Rs. ${item.price}</strong>
+                        <button onclick="removeFromCart(${idx})" style="background:#ffe3e3; color:red; border:none; padding:5px; border-radius:5px; cursor:pointer;"><ion-icon name="trash"></ion-icon></button>
+                    </div>
+                </li>`;
+        });
+        totalEl.innerText = "Rs. " + sum.toLocaleString();
+    }
+
+    // --- QR CHECKOUT LOGIC ---
+    function showQRModal() {
+        // Check if logged in (PHP sets this variable)
+        var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+        
+        if(!isLoggedIn) {
+            alert("Please login to proceed.");
+            window.location.href = "signin.php";
+            return;
+        }
+        
+        if(cart.length === 0) {
+            alert("Cart is empty!");
+            return;
+        }
+
+        // Close Cart, Open QR
+        document.getElementById('cartModal').style.display = 'none';
+        document.getElementById('qrModal').style.display = 'flex';
+    }
+
+    function closeQRModal() {
+        document.getElementById('qrModal').style.display = 'none';
+    }
+
+    function submitFinalOrder() {
+        document.getElementById('checkout-form').submit();
+    }
+    // closing
+function closeModal() {
+    const modal = document.getElementById('modalOverlay');
+    if (modal) {
+        modal.style.display = 'none';
+        window.history.replaceState({}, document.title, "index.php");
+    }
+}
+</script>
     
     <a href="admin.php" style="position:fixed; bottom:80px; right:20px; background:#333; color:white; padding:10px 20px; border-radius:50px; text-decoration:none; font-size:1.4rem; z-index:900; display:flex; align-items:center; gap:8px;">
         <ion-icon name="shield-checkmark-outline"></ion-icon> Admin
     </a>
+         <div id="cartModal" class="modal-overlay" style="display: none; z-index: 10000;">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close-btn" onclick="toggleCartModal()">&times;</span>
+        <h2 class="heading-secondary" style="margin-bottom: 10px;">Your Cart</h2>
+        
+        <ul id="cart-list-container" class="cart-list"></ul>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 2px solid #fdf2e9;">
+            <span style="font-size: 1.8rem; font-weight: 700; color: #333;">Total:</span>
+            <span id="modal-cart-total" style="font-size: 2rem; font-weight: 700; color: #e67e22;">Rs. 0</span>
+        </div>
 
+        <button class="btn btn--full" onclick="scrollToCheckout()" style="margin-top: 20px; width: 100%;">Proceed to Checkout</button>
+    </div>
+</div>
+<form id="checkout-form" method="POST" style="display:none;">
+    <input type="hidden" name="hidden_order_items" id="hidden-order-items">
+</form>
   </body>
 </html>
