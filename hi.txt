@@ -2,4 +2,5 @@ http://localhost/omnifood-main/index.php
 http://localhost/omnifood-main/admin.php
 password: omnifood123
 email: hello@omnifood.com
-Database: id, Name, Email, order_items, Source, status, created_at.
+Database: id(int), Name(var), Email(var), password(int), order_items(var), payment_status, Source, status, created_at.
+

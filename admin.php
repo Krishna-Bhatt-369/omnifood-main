@@ -15,23 +15,45 @@ if (isset($_GET['logout'])) {
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     $conn->query("DELETE FROM cafe WHERE id = $id");
-    header("Location: admin.php?msg=deleted");
+    
+    // Maintain filter if active
+    $redirect = "admin.php?msg=deleted";
+    if(isset($_GET['email_filter'])) {
+        $redirect .= "&email_filter=" . urlencode($_GET['email_filter']);
+    }
+    header("Location: $redirect");
     exit;
 }
 
 // APPROVE PAYMENT
 if (isset($_GET['approve_payment'])) {
     $id = intval($_GET['approve_payment']);
-    // Set payment to PAID and mark notification as READ
     $conn->query("UPDATE cafe SET payment_status = 'paid', status = 'read' WHERE id = $id");
-    header("Location: admin.php?msg=approved");
+    
+    $redirect = "admin.php?msg=approved";
+    if(isset($_GET['email_filter'])) {
+        $redirect .= "&email_filter=" . urlencode($_GET['email_filter']);
+    }
+    header("Location: $redirect");
     exit;
 }
 
-// MARK AS READ
-if (isset($_GET['mark_read'])) {
-    $id = intval($_GET['mark_read']);
-    $conn->query("UPDATE cafe SET status = 'read' WHERE id = $id");
+// MARK AS COMPLETED
+if (isset($_GET['complete_order'])) {
+    $id = intval($_GET['complete_order']);
+    $conn->query("UPDATE cafe SET status = 'completed' WHERE id = $id");
+    
+    $redirect = "admin.php?msg=completed";
+    if(isset($_GET['email_filter'])) {
+        $redirect .= "&email_filter=" . urlencode($_GET['email_filter']);
+    }
+    header("Location: $redirect");
+    exit;
+}
+
+// MARK ALL AS READ (Notification Bell)
+if (isset($_GET['mark_read_all'])) {
+    $conn->query("UPDATE cafe SET status = 'read' WHERE status = 'new'");
     header("Location: admin.php");
     exit;
 }
@@ -41,13 +63,18 @@ if (isset($_GET['export'])) {
     header('Content-Type: text/csv');
     header('Content-Disposition: attachment; filename="omnifood_data.csv"');
     $output = fopen('php://output', 'w');
-    fputcsv($output, array('ID', 'Name', 'Email', 'Order Items', 'Payment Status', 'Date'));
+    
+    // Added 'Phone' to the header row
+    fputcsv($output, array('ID', 'Name', 'Phone', 'Email', 'Order Items', 'Payment Status', 'Status', 'Date'));
     
     $rows = $conn->query("SELECT * FROM cafe ORDER BY id DESC");
     while ($row = $rows->fetch_assoc()) {
         $name = !empty($row['Name']) ? $row['Name'] : "Guest"; 
+        // Fetch phone from DB column
+        $phone = !empty($row['phone_number']) ? $row['phone_number'] : "N/A";
         $pay_stat = isset($row['payment_status']) ? $row['payment_status'] : 'none';
-        fputcsv($output, array($row['id'], $name, $row['Email'], $row['order_items'], $pay_stat, $row['created_at']));
+        
+        fputcsv($output, array($row['id'], $name, $phone_number, $row['Email'], $row['order_items'], $pay_stat, $row['status'], $row['created_at']));
     }
     fclose($output);
     exit;
@@ -62,6 +89,24 @@ $pending_count = $pending_res->fetch_assoc()['count'];
 
 $total_res = $conn->query("SELECT COUNT(*) as count FROM cafe");
 $total_count = $total_res->fetch_assoc()['count'];
+
+// --- 5. DATA FETCHING (WITH FILTER LOGIC) ---
+$filter_email = "";
+$result_list = null;
+
+if (isset($_GET['email_filter']) && !empty($_GET['email_filter'])) {
+    // Show only orders from specific email
+    $filter_email = urldecode($_GET['email_filter']);
+    $stmt = $conn->prepare("SELECT * FROM cafe WHERE email = ? ORDER BY id DESC");
+    $stmt->bind_param("s", $filter_email);
+    $stmt->execute();
+    $result_list = $stmt->get_result();
+} else {
+    // Default view (Limit 50 for performance)
+    $result_list = $conn->query("SELECT * FROM cafe ORDER BY id DESC LIMIT 50");
+}
+
+$admin_name = isset($_SESSION['admin_name']) ? $_SESSION['admin_name'] : 'Admin';
 ?>
 
 <!DOCTYPE html>
@@ -100,205 +145,269 @@ $total_count = $total_res->fetch_assoc()['count'];
         .card span { color: #777; font-size: 14px; text-transform: uppercase; }
         .icon-box { font-size: 40px; color: var(--primary); background: var(--bg); padding: 10px; border-radius: 50%; }
 
+        /* FILTER BANNER */
+        .filter-banner {
+            background-color: #dff9fb; border: 1px solid #b3e4ec; color: #0c8599;
+            padding: 15px; border-radius: 8px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
         /* TABLE */
         .table-box { background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         thead { background: #f1f3f5; }
-        th { padding: 15px 20px; font-size: 13px; text-transform: uppercase; color: #555; }
-        td { padding: 15px 20px; border-bottom: 1px solid #eee; color: #444; vertical-align: middle; }
+        th { padding: 15px; font-size: 14px; color: #555; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #eee; color: #333; font-size: 15px; }
+        tr:hover { background: #fdf2e9; cursor: pointer; }
         
-        /* STATUS TAGS */
-        .tag { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-        .tag-pending { background: #fff3cd; color: #856404; }
-        .tag-paid { background: #d4edda; color: #155724; }
-        .tag-none { background: #eee; color: #777; }
+        /* STATUS BADGES */
+        .status { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .status.new { background: #ffeaa7; color: #d35400; }
+        .status.read { background: #dff9fb; color: #2980b9; }
+        .status.completed { background: #c3fae8; color: #0ca678; } 
         
-        .row-new { background: #fff9f2; border-left: 4px solid var(--primary); }
+        .payment.pending { color: #e74c3c; font-weight: bold; }
+        .payment.paid { color: #2ecc71; font-weight: bold; }
 
-        /* BUTTONS */
-        .btn-action { text-decoration: none; padding: 8px 12px; border-radius: 5px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; border: none; cursor: pointer; transition: 0.2s; }
-        .btn-approve { background: #27ae60; color: white; }
-        .btn-approve:hover { background: #219150; }
-        .btn-view { background: #333; color: white; }
-        .btn-view:hover { background: #555; }
-        .btn-del { color: #e74c3c; background: none; font-size: 20px; padding: 5px; }
-        .btn-del:hover { background: #ffe3e3; border-radius: 5px; }
+        /* ACTION BUTTONS */
+        .btn-action { text-decoration: none; padding: 8px 12px; border-radius: 5px; font-size: 14px; margin-right: 5px; display: inline-block; transition:0.2s; }
+        .btn-action:hover { opacity: 0.8; }
+        .btn-del { background: #ffe3e3; color: #e03131; }
+        .btn-approve { background: #d3f9d8; color: #2b8a3e; }
+        .btn-complete { background: #e3fafc; color: #0c8599; }
+        
+        /* EMAIL LINK */
+        .email-link { color: #2980b9; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+        .email-link:hover { text-decoration: underline; color: #e67e22; }
 
         /* MODAL */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: white; width: 500px; padding: 30px; border-radius: 12px; animation: slide 0.3s; position: relative; }
-        @keyframes slide { from{transform:translateY(-20px);opacity:0} to{transform:translateY(0);opacity:1} }
-        .data-row { margin-bottom: 15px; }
-        .label { font-size: 12px; color: #888; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        .val { font-size: 16px; color: #333; font-weight: 500; }
-        .msg-box { background: #fdf2e9; padding: 15px; border-radius: 8px; border: 1px solid #e67e22; margin-top: 5px; }
-        .close { position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; }
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: white; padding: 30px; border-radius: 10px; width: 400px; max-width: 90%; position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #777; }
+        .modal h2 { margin-top: 0; color: var(--primary); }
+        .detail-row { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .detail-label { font-weight: bold; color: #555; font-size: 12px; text-transform: uppercase; }
+        .detail-value { font-size: 16px; color: #333; margin-top: 4px; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <div class="logo"><ion-icon name="restaurant"></ion-icon> Omnifood</div>
-        <a href="#" class="nav-link active"><ion-icon name="grid"></ion-icon> Dashboard</a>
-        <a href="index.php" class="nav-link" target="_blank"><ion-icon name="globe"></ion-icon> Visit Site</a>
-        <a href="admin.php?export=true" class="nav-link"><ion-icon name="download"></ion-icon> Export CSV</a>
-        <a href="admin.php?logout=true" class="nav-link logout"><ion-icon name="log-out"></ion-icon> Logout</a>
+        <div class="logo">
+            <ion-icon name="restaurant"></ion-icon> Omnifood
+        </div>
+        <a href="admin.php" class="nav-link active"><ion-icon name="grid-outline"></ion-icon> Dashboard</a>
+        <a href="admin.php?export=true" class="nav-link"><ion-icon name="download-outline"></ion-icon> Export Data</a>
+        <a href="index.php" class="nav-link" target="_blank"><ion-icon name="globe-outline"></ion-icon> View Website</a>
+        
+        <a href="admin.php?logout=true" class="logout nav-link"><ion-icon name="log-out-outline"></ion-icon> Log Out</a>
     </div>
 
     <div class="main">
         <div class="header">
-            <div>
-                <h1 style="margin:0;">Admin Dashboard</h1>
-                <p style="margin:5px 0 0; color:#777;">Manage orders, approvals, and inquiries.</p>
-            </div>
-            <div class="notif-box">
-                <ion-icon name="notifications"></ion-icon>
+            <h2 style="color: #333; margin: 0;">Welcome, <?php echo htmlspecialchars($admin_name); ?>!</h2>
+
+            <div class="notif-box" onclick="window.location.href='admin.php?mark_read_all=true'">
+                <ion-icon name="notifications-outline"></ion-icon>
                 <span class="badge"><?php echo $new_count; ?></span>
             </div>
         </div>
 
         <div class="stats">
             <div class="card">
-                <div class="icon-box"><ion-icon name="cart"></ion-icon></div>
+                <div class="icon-box"><ion-icon name="people-outline"></ion-icon></div>
                 <div><h3><?php echo $total_count; ?></h3><span>Total Orders</span></div>
             </div>
             <div class="card">
-                <div class="icon-box" style="color:#e74c3c; background:#ffe3e3;"><ion-icon name="time"></ion-icon></div>
-                <div><h3 style="color:#e74c3c;"><?php echo $pending_count; ?></h3><span>Pending Approvals</span></div>
+                <div class="icon-box"><ion-icon name="wallet-outline"></ion-icon></div>
+                <div><h3><?php echo $pending_count; ?></h3><span>Pending Pay</span></div>
             </div>
             <div class="card">
-                <div class="icon-box" style="color:#27ae60; background:#d4edda;"><ion-icon name="checkmark-circle"></ion-icon></div>
-                <div><h3><?php echo $total_count - $pending_count; ?></h3><span>Completed</span></div>
+                <div class="icon-box"><ion-icon name="mail-unread-outline"></ion-icon></div>
+                <div><h3><?php echo $new_count; ?></h3><span>New Inquiries</span></div>
             </div>
         </div>
 
-        <h3 style="color:#555;">Recent Orders</h3>
+        <?php if (!empty($filter_email)): ?>
+        <div class="filter-banner">
+            <span>
+                <ion-icon name="funnel-outline" style="vertical-align: text-bottom;"></ion-icon> 
+                Showing orders for: <strong><?php echo htmlspecialchars($filter_email); ?></strong>
+            </span>
+            <a href="admin.php" style="color: #c0392b; font-weight: bold; text-decoration: none;">× Clear Filter</a>
+        </div>
+        <?php endif; ?>
+
         <div class="table-box">
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+                <h3 style="margin:0; color: #333;">Recent Orders & Inquiries</h3>
+            </div>
             <table>
                 <thead>
                     <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Phone</th> <th>Email (History)</th>
                         <th>Status</th>
-                        <th>Customer</th>
-                        <th>Order Details</th>
                         <th>Payment</th>
-                        <th>Actions</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php
-                    // CONNECTING TO CAFE TABLE
-                    $result = $conn->query("SELECT * FROM cafe ORDER BY id DESC");
-                    if ($result->num_rows > 0):
-                        while($row = $result->fetch_assoc()):
-                            $name = !empty($row['Name']) ? $row['Name'] : "Guest";
-                            $pay_status = isset($row['payment_status']) ? $row['payment_status'] : 'none';
-                            $status = isset($row['status']) ? $row['status'] : 'read';
-                            $rowClass = ($status == 'new') ? 'row-new' : '';
-                    ?>
-                    <tr class="<?php echo $rowClass; ?>">
-                        <td>
-                            <?php if($status == 'new'): ?>
-                                <span class="tag" style="background:#e67e22; color:white;">NEW</span>
-                            <?php else: ?>
-                                <span class="tag" style="background:#eee; color:#888;">READ</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <div class="val"><?php echo htmlspecialchars($name); ?></div>
-                            <div style="font-size:12px; color:#888;"><?php echo htmlspecialchars($row['Email']); ?></div>
-                        </td>
-                        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            <?php echo htmlspecialchars($row['order_items']); ?>
-                        </td>
-                        <td>
-                            <?php if($pay_status == 'pending'): ?>
-                                <span class="tag tag-pending">Pending</span>
-                            <?php elseif($pay_status == 'paid'): ?>
-                                <span class="tag tag-paid">PAID</span>
-                            <?php else: ?>
-                                <span class="tag tag-none">-</span>
-                            <?php endif; ?>
-                        </td>
-                        <td style="display: flex; align-items: center; gap: 10px;">
+                    if ($result_list && $result_list->num_rows > 0):
+                        while($row = $result_list->fetch_assoc()):
+                            $userName = !empty($row['Name']) ? $row['Name'] : "Guest";
+                            // Get Phone from DB
+                            $userPhone = !empty($row['phone_number']) ? $row['phone_number'] : "-";
                             
-                            <?php if($pay_status == 'pending'): ?>
-                                <a href="admin.php?approve_payment=<?php echo $row['id']; ?>" class="btn-action btn-approve" onclick="return confirm('Confirm payment received for <?php echo $name; ?>?');">
-                                    <ion-icon name="checkmark"></ion-icon> Approve
-                                </a>
+                            $statusClass = 'read';
+                            if ($row['status'] == 'new') $statusClass = 'new';
+                            if ($row['status'] == 'completed') $statusClass = 'completed';
+
+                            $payClass = ($row['payment_status'] == 'paid') ? 'paid' : 'pending';
+                            
+                            // Maintain filter param
+                            $filterStr = !empty($filter_email) ? "&email_filter=" . urlencode($filter_email) : "";
+                    ?>
+                    <tr onclick='showModal(<?php echo json_encode($row); ?>)'>
+                        <td>#<?php echo $row['id']; ?></td>
+                        <td><?php echo htmlspecialchars($userName); ?></td>
+                        <td><?php echo htmlspecialchars($userPhone); ?></td> <td onclick="event.stopPropagation()">
+                            <a href="admin.php?email_filter=<?php echo urlencode($row['Email']); ?>" class="email-link" title="See all orders from this email">
+                                <?php echo htmlspecialchars($row['Email']); ?>
+                                <ion-icon name="search-circle-outline" style="font-size:16px;"></ion-icon>
+                            </a>
+                        </td>
+                        
+                        <td><span class="status <?php echo $statusClass; ?>"><?php echo strtoupper($row['status']); ?></span></td>
+                        <td><span class="payment <?php echo $payClass; ?>"><?php echo strtoupper($row['payment_status']); ?></span></td>
+                        <td onclick="event.stopPropagation()">
+                            
+                            <a href="admin.php?delete=<?php echo $row['id'] . $filterStr; ?>" class="btn-action btn-del" onclick="return confirm('Are you sure?')" title="Delete"><ion-icon name="trash-outline"></ion-icon></a>
+                            
+                            <?php if($row['payment_status'] == 'pending'): ?>
+                            <a href="admin.php?approve_payment=<?php echo $row['id'] . $filterStr; ?>" class="btn-action btn-approve" title="Approve Payment"><ion-icon name="checkmark-circle-outline"></ion-icon></a>
                             <?php endif; ?>
 
-                            <button class="btn-action btn-view" onclick='showModal(<?php echo json_encode($row); ?>)'>
-                                <ion-icon name="eye"></ion-icon> View
-                            </button>
+                            <?php if($row['status'] != 'completed'): ?>
+                            <a href="admin.php?complete_order=<?php echo $row['id'] . $filterStr; ?>" class="btn-action btn-complete" title="Mark Order Completed"><ion-icon name="bicycle-outline"></ion-icon></a>
+                            <?php endif; ?>
 
-                            <a href="admin.php?delete=<?php echo $row['id']; ?>" class="btn-del" onclick="return confirm('Delete this record?');">
-                                <ion-icon name="trash"></ion-icon>
-                            </a>
                         </td>
                     </tr>
                     <?php endwhile; else: ?>
-                        <tr><td colspan="5" style="text-align:center; padding:30px;">No records found.</td></tr>
+                    <tr><td colspan="7" style="text-align:center; padding:20px;">No records found.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <div id="detailModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h2 style="margin-top:0;">Order Details</h2>
+    <div id="detailModal" class="modal-overlay">
+        <div class="modal">
+            <span class="close-btn" onclick="closeModal()">×</span>
+            <h2>Order Details</h2>
             
-            <div class="data-row">
-                <span class="label">Customer Name</span>
-                <div class="val" id="m-name"></div>
+            <div class="detail-row">
+                <div class="detail-label">Name</div>
+                <div class="detail-value" id="m-name"></div>
             </div>
-            <div class="data-row">
-                <span class="label">Email Address</span>
-                <div class="val" id="m-email"></div>
-            </div>
-            <div class="data-row">
-                <span class="label">Date</span>
-                <div class="val" id="m-date"></div>
-            </div>
-            <div class="data-row">
-                <span class="label">Order / Message</span>
-                <div class="val msg-box" id="m-msg"></div>
+            
+            <div class="detail-row">
+                <div class="detail-label">Phone</div>
+                <div class="detail-value" id="m-phone" style="font-weight:bold; color:#e67e22;"></div>
             </div>
 
-            <a href="#" id="m-approve-btn" class="btn-action btn-approve" style="width:100%; justify-content:center; padding:15px; margin-top:20px; display:none;">
-                <ion-icon name="checkmark-circle"></ion-icon> Approve Payment
-            </a>
+            <div class="detail-row">
+                <div class="detail-label">Email</div>
+                <div class="detail-value" id="m-email"></div>
+            </div>
+            
+            <div class="detail-row">
+                <div class="detail-label">Date</div>
+                <div class="detail-value" id="m-date"></div>
+            </div>
+            
+            <div class="detail-row" style="border:none;">
+                <div class="detail-label">Order Items / Message</div>
+                <div class="detail-value" id="m-msg" style="background:#f9f9f9; padding:10px; border-radius:5px; height:100px; overflow-y:auto;"></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <a href="#" id="m-approve-btn" class="btn-action btn-approve" style="flex:1; justify-content:center; padding:15px; display:none; text-align:center;">
+                    <ion-icon name="checkmark-circle"></ion-icon> Approve Pay
+                </a>
+                <a href="#" id="m-complete-btn" class="btn-action btn-complete" style="flex:1; justify-content:center; padding:15px; display:none; text-align:center;">
+                    <ion-icon name="bicycle"></ion-icon> Complete Order
+                </a>
+            </div>
         </div>
     </div>
 
     <script>
         const modal = document.getElementById('detailModal');
         const mName = document.getElementById('m-name');
+        const mPhone = document.getElementById('m-phone'); // Element for Phone
         const mEmail = document.getElementById('m-email');
         const mDate = document.getElementById('m-date');
         const mMsg = document.getElementById('m-msg');
+        
         const mApproveBtn = document.getElementById('m-approve-btn');
+        const mCompleteBtn = document.getElementById('m-complete-btn');
 
         function showModal(data) {
             mName.innerText = data.Name || 'Guest';
+            mPhone.innerText = data.phone_number || 'N/A'; // Fill Phone Number
             mEmail.innerText = data.Email;
             mDate.innerText = data.created_at;
-            mMsg.innerText = data.order_items;
 
-            // Show Approve button inside modal only if pending
+            // Generate Map Link if Location exists
+            let orderText = data.order_items;
+            let locationLink = "";
+            
+            // Check for [Loc: 27.xxx, 85.xxx] pattern
+            if (orderText && orderText.includes("[Loc:")) {
+                let parts = orderText.split("[Loc: ");
+                if (parts.length > 1) {
+                    let coords = parts[1].split("]")[0].trim();
+                    locationLink = `<br><br><a href="https://www.google.com/maps?q=${coords}" target="_blank" 
+                    style="display:inline-block; padding:8px 12px; background:#4285F4; color:white; text-decoration:none; border-radius:5px; font-size:12px;">
+                    <ion-icon name="map-outline"></ion-icon> View Location on Map
+                    </a>`;
+                }
+            }
+            mMsg.innerHTML = orderText + locationLink;
+
+            // Button Logic
+            const filterParam = "<?php echo !empty($filter_email) ? '&email_filter='.urlencode($filter_email) : ''; ?>";
+
             if (data.payment_status === 'pending') {
-                mApproveBtn.style.display = 'flex';
-                mApproveBtn.href = "admin.php?approve_payment=" + data.id;
+                mApproveBtn.style.display = 'block';
+                mApproveBtn.href = "admin.php?approve_payment=" + data.id + filterParam;
             } else {
                 mApproveBtn.style.display = 'none';
+            }
+
+            if (data.status !== 'completed') {
+                mCompleteBtn.style.display = 'block';
+                mCompleteBtn.href = "admin.php?complete_order=" + data.id + filterParam;
+            } else {
+                mCompleteBtn.style.display = 'none';
             }
             
             modal.style.display = 'flex';
         }
 
-        function closeModal() { modal.style.display = 'none'; }
-        window.onclick = function(e) { if(e.target == modal) closeModal(); }
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
     </script>
 </body>
 </html>

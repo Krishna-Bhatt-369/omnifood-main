@@ -2,31 +2,61 @@
 session_start();
 include 'connect.php';
 
-// --- DEFAULT STATE: LOCKED ---
-$unlocked = false;
-$error = "🔒 Please <strong>Log In</strong> to view premium recipes.";
-$show_login_btn = true;
+// --- 1. HANDLE ORDER SUBMISSION ---
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // Sanitize Inputs
+    $name = isset($_POST['full_name']) ? htmlspecialchars(trim($_POST['full_name'])) : "Guest";
+    $email = isset($_POST['email']) ? htmlspecialchars(trim($_POST['email'])) : "no-email@test.com";
+    $order_items = isset($_POST['hidden_order_items']) ? htmlspecialchars(trim($_POST['hidden_order_items'])) : "";
+    
+    // Capture Location & Phone
+    $location = isset($_POST['location_coords']) ? htmlspecialchars(trim($_POST['location_coords'])) : "";
+    $phone = isset($_POST['phone']) ? htmlspecialchars(trim($_POST['phone'])) : "";
 
-// --- CHECK LOGIN & PAYMENT STATUS ---
+    // --- HYBRID FIX: Append details to Order Text as a BACKUP ---
+    // This ensures Admin sees it in the "Order Items" column even if the phone column is hidden
+    if(!empty($phone)) {
+        $order_items .= " | [Ph: $phone]";
+    }
+    if(!empty($location)) {
+        $order_items .= " | [Loc: $location]";
+    }
+
+    $source = "Recipe Page";
+    $status = 'new';
+    $payment = 'pending';
+
+    // --- INSERT INTO DATABASE ---
+    // We try to insert into 'phone_number' column. 
+    // If your DB doesn't have that column yet, the text append above saves you.
+    // If your DB DOES have it, this saves it properly.
+    
+    // Check if phone_number column exists in your specific setup or just use the 6 param version if unsure
+    // Assuming you created the column 'phone_number':
+    $stmt = $conn->prepare("INSERT INTO cafe (name, email, phone_number, order_items, source, payment_status, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssss", $name, $email, $phone, $order_items, $source, $payment, $status);
+    
+    if ($stmt->execute()) {
+        header("Location: recipes.php?msg=ordered");
+        exit();
+    } else {
+        // Fallback for debugging
+        echo "Error: " . $conn->error;
+    }
+}
+
+// --- 2. CHECK PERMISSIONS (View Recipe Button) ---
+$unlocked = false; // Default: Locked
 if (isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];
-    $show_login_btn = false; // User is already logged in
-    
-    // Check Database
     $stmt = $conn->prepare("SELECT payment_status FROM cafe WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     
     if ($row = $result->fetch_assoc()) {
-        $status = strtolower($row['payment_status']);
-        
-        if ($status === 'paid') {
-            $unlocked = true; // UNLOCK CONTENT
-        } elseif ($status === 'pending') {
-            $error = "⏳ <strong>Payment Pending</strong><br>We have received your request.<br>Please wait for Admin approval.";
-        } else {
-            $error = "🔒 <strong>Access Denied</strong><br>You need to purchase the <strong>Complete Plan</strong>.";
+        if (strtolower($row['payment_status']) === 'paid') {
+            $unlocked = true; // Unlock ONLY if paid
         }
     }
 }
@@ -106,28 +136,34 @@ if (isset($_SESSION['user_id'])) {
         .chef-info h4 { font-size: 1.4rem; color: #333; margin: 0; }
         .chef-info span { font-size: 1.1rem; color: #888; text-transform: uppercase; font-weight: 600; }
 
-        .btn-view {
-            width: 100%; border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            background-color: #333; color: #fff; padding: 14px; border-radius: 9px; 
-            font-weight: 600; font-size: 1.6rem; font-family: inherit; transition: 0.3s; 
-        }
-        .btn-view:hover { background-color: #e67e22; }
+        /* BUTTONS ACTIONS CONTAINER */
+        .meal-actions { display: flex; gap: 10px; }
 
-        /* LOCKED SCREEN */
-        .access-box {
-            max-width: 500px; margin: 80px auto; text-align: center; padding: 40px;
-            background: white; border-radius: 11px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        .btn-view {
+            flex: 1; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            background-color: #333; color: #fff; padding: 10px; border-radius: 9px; 
+            font-weight: 600; font-size: 1.4rem; font-family: inherit; transition: 0.3s; 
         }
-        .locked-icon { font-size: 64px; color: #e67e22; margin-bottom: 20px; }
-        .error-banner { background: #ffe3e3; color: #e03131; padding: 20px; border-radius: 9px; margin-bottom: 20px; font-size: 1.6rem; line-height: 1.5; }
+        .btn-view:hover { background-color: #555; }
+        
+        /* Locked Button Style */
+        .btn-view.locked { background-color: #ccc; cursor: not-allowed; }
+
+        /* NEW ADD TO CART BUTTON */
+        .btn-add {
+            flex: 1; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            background-color: #e67e22; color: #fff; padding: 10px; border-radius: 9px; 
+            font-weight: 600; font-size: 1.4rem; font-family: inherit; transition: 0.3s; 
+        }
+        .btn-add:hover { background-color: #cf711f; }
 
         /* --- MODAL CSS --- */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
         .modal-content { background: white; width: 95%; max-width: 900px; max-height: 90vh; border-radius: 12px; overflow-y: auto; position: relative; padding: 40px; animation: slideUp 0.3s ease-out; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
         @keyframes slideUp { from{transform: translateY(40px); opacity: 0;} to{transform: translateY(0); opacity: 1;} }
         
-        /* Close Button Fix: Added Z-Index */
         .close-btn { 
             position: absolute; top: 20px; right: 25px; 
             font-size: 4rem; cursor: pointer; color: #555; 
@@ -147,6 +183,16 @@ if (isset($_SESSION['user_id'])) {
         .step-box { background-color: #fdf2e9; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         .step-box h4 { font-size: 1.4rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .step-box p { font-size: 1.6rem; line-height: 1.6; color: #333; }
+
+        /* CART STYLES */
+        #sticky-cart { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 3px solid #e67e22; padding: 20px 40px; justify-content: space-between; align-items: center; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .cart-list { list-style: none; padding: 0; margin: 20px 0; max-height: 200px; overflow-y: auto; text-align: left;}
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; font-size: 1.6rem; }
+        .btn-remove { background: #ffe3e3; color: #e03131; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 1.4rem; margin-left: 15px; }
+        
+        /* LOCATION BUTTON */
+        .btn-location { background-color: #2ecc71; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; width: 100%; margin: 15px 0; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.4rem; }
+        .btn-location:disabled { background-color: #ccc; cursor: not-allowed; }
 
         @media (max-width: 950px) { .recipe-grid { grid-template-columns: 1fr 1fr; } .chefs-grid { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 700px) { .recipe-details { grid-template-columns: 1fr; } } 
@@ -175,27 +221,6 @@ if (isset($_SESSION['user_id'])) {
 
     <main>
         
-        <?php if (!$unlocked): ?>
-        <div class="container">
-            <div class="access-box">
-                <ion-icon name="lock-closed-outline" class="locked-icon"></ion-icon>
-                <h2 class="heading-secondary">The Nepali Cookbook</h2>
-                <p style="margin-bottom: 30px; font-size: 1.8rem; line-height: 1.6;">
-                    Unlock exclusive access to <strong>Secret Recipes</strong> from our local chefs.
-                    <br>Only available to <strong>Complete Plan</strong> members.
-                </p>
-                
-                <div class="error-banner"><?php echo $error; ?></div>
-                
-                <?php if ($show_login_btn): ?>
-                    <a href="signin.php" class="btn btn--full" style="width: 100%; text-decoration: none; display: inline-block;">Log In Now</a>
-                <?php else: ?>
-                    <a href="index.php#pricing" class="btn btn--full" style="width: 100%; text-decoration: none; display: inline-block;">Go to Home / Buy Plan</a>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <?php else: ?>
         <section class="section-featured">
             <div class="container">
                 <h2 class="heading-featured">Featured in Nepali Media</h2>
@@ -243,6 +268,12 @@ if (isset($_SESSION['user_id'])) {
             <div class="container center-text">
                 <span class="subheading">Premium Content</span>
                 <h2 class="heading-secondary">The Recipe Directory</h2>
+                <?php if(!$unlocked): ?>
+                <p style="font-size:1.6rem; color:#e67e22; margin-top:1rem; background: #fff4e6; display:inline-block; padding:10px 20px; border-radius:50px;">
+                    <ion-icon name="lock-closed-outline" style="vertical-align:middle;"></ion-icon> 
+                    <strong>Note:</strong> Recipes are locked for guests. Upgrade to Complete Plan to view.
+                </p>
+                <?php endif; ?>
             </div>
             <div class="container recipe-grid">
                 
@@ -253,7 +284,14 @@ if (isset($_SESSION['user_id'])) {
                         <p class="recipe-desc">The exact recipe for our famous sesame-tomato soup and juicy dumpling filling.</p>
                         <div class="card-footer">
                             <div class="chef-mini"><img src="./img/chef/Ram Sharan Thapa.jpg" alt="Chef Ram"><div class="chef-info"><h4>Ram Sharan</h4><span>Momo Expert</span></div></div>
-                            <button class="btn-view" onclick="openModal('momo')"><ion-icon name="restaurant-outline"></ion-icon> View Recipe</button>
+                            <div class="meal-actions">
+                                <?php if($unlocked): ?>
+                                <button class="btn-view" onclick="openModal('momo')"><ion-icon name="restaurant-outline"></ion-icon> View</button>
+                                <?php else: ?>
+                                <button class="btn-view locked" onclick="alert('🔒 Locked! Please upgrade to Complete Plan to view recipes.')"><ion-icon name="lock-closed-outline"></ion-icon> Locked</button>
+                                <?php endif; ?>
+                                <button class="btn-add" onclick="addToCart('Jhol Momos', 350)"><ion-icon name="cart-outline"></ion-icon> Add Rs.350</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -265,7 +303,14 @@ if (isset($_SESSION['user_id'])) {
                         <p class="recipe-desc">Learn how to temper lentils with Jimbu herb and ferment your own Gundruk.</p>
                         <div class="card-footer">
                             <div class="chef-mini"><img src="./img/chef/Bishal Gurung.webp" alt="Chef Bishal"><div class="chef-info"><h4>Bishal Gurung</h4><span>Thakali Master</span></div></div>
-                            <button class="btn-view" onclick="openModal('dalbhat')"><ion-icon name="restaurant-outline"></ion-icon> View Recipe</button>
+                            <div class="meal-actions">
+                                <?php if($unlocked): ?>
+                                <button class="btn-view" onclick="openModal('dalbhat')"><ion-icon name="restaurant-outline"></ion-icon> View</button>
+                                <?php else: ?>
+                                <button class="btn-view locked" onclick="alert('🔒 Locked! Please upgrade to Complete Plan to view recipes.')"><ion-icon name="lock-closed-outline"></ion-icon> Locked</button>
+                                <?php endif; ?>
+                                <button class="btn-add" onclick="addToCart('Dal Bhat', 450)"><ion-icon name="cart-outline"></ion-icon> Add Rs.450</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -277,7 +322,14 @@ if (isset($_SESSION['user_id'])) {
                         <p class="recipe-desc">The ultimate comfort food. Hand-pulled noodles in a rich bone broth.</p>
                         <div class="card-footer">
                             <div class="chef-mini"><img src="./img/chef/Dorje Sherpa.jpeg" alt="Chef Dorje"><div class="chef-info"><h4>Dorje Sherpa</h4><span>Soup Master</span></div></div>
-                            <button class="btn-view" onclick="openModal('thukpa')"><ion-icon name="restaurant-outline"></ion-icon> View Recipe</button>
+                            <div class="meal-actions">
+                                <?php if($unlocked): ?>
+                                <button class="btn-view" onclick="openModal('thukpa')"><ion-icon name="restaurant-outline"></ion-icon> View</button>
+                                <?php else: ?>
+                                <button class="btn-view locked" onclick="alert('🔒 Locked! Please upgrade to Complete Plan to view recipes.')"><ion-icon name="lock-closed-outline"></ion-icon> Locked</button>
+                                <?php endif; ?>
+                                <button class="btn-add" onclick="addToCart('Thukpa', 300)"><ion-icon name="cart-outline"></ion-icon> Add Rs.300</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -289,7 +341,14 @@ if (isset($_SESSION['user_id'])) {
                         <p class="recipe-desc">A festive platter with beaten rice, spicy choila, and black soybeans.</p>
                         <div class="card-footer">
                             <div class="chef-mini"><img src="./img/chef/Rahul Babu Shrestha.avif" alt="Chef Rahul"><div class="chef-info"><h4>Rahul Babu</h4><span>Newari Cuisine</span></div></div>
-                            <button class="btn-view" onclick="openModal('newari')"><ion-icon name="restaurant-outline"></ion-icon> View Recipe</button>
+                            <div class="meal-actions">
+                                <?php if($unlocked): ?>
+                                <button class="btn-view" onclick="openModal('newari')"><ion-icon name="restaurant-outline"></ion-icon> View</button>
+                                <?php else: ?>
+                                <button class="btn-view locked" onclick="alert('🔒 Locked! Please upgrade to Complete Plan to view recipes.')"><ion-icon name="lock-closed-outline"></ion-icon> Locked</button>
+                                <?php endif; ?>
+                                <button class="btn-add" onclick="addToCart('Samay Baji', 500)"><ion-icon name="cart-outline"></ion-icon> Add Rs.500</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -301,7 +360,14 @@ if (isset($_SESSION['user_id'])) {
                         <p class="recipe-desc">Our secret marinade spice blend revealed for the first time.</p>
                         <div class="card-footer">
                             <div class="chef-mini"><img src="./img/chef/Ram Sharan Thapa.jpg" alt="Chef Ram"><div class="chef-info"><h4>Ram Sharan</h4><span>Grill Master</span></div></div>
-                            <button class="btn-view" onclick="openModal('sekuwa')"><ion-icon name="restaurant-outline"></ion-icon> View Recipe</button>
+                            <div class="meal-actions">
+                                <?php if($unlocked): ?>
+                                <button class="btn-view" onclick="openModal('sekuwa')"><ion-icon name="restaurant-outline"></ion-icon> View</button>
+                                <?php else: ?>
+                                <button class="btn-view locked" onclick="alert('🔒 Locked! Please upgrade to Complete Plan to view recipes.')"><ion-icon name="lock-closed-outline"></ion-icon> Locked</button>
+                                <?php endif; ?>
+                                <button class="btn-add" onclick="addToCart('Sekuwa', 400)"><ion-icon name="cart-outline"></ion-icon> Add Rs.400</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -313,20 +379,25 @@ if (isset($_SESSION['user_id'])) {
                         <p class="recipe-desc">Master the art of pouring perfect ring-shaped rice bread.</p>
                         <div class="card-footer">
                             <div class="chef-mini"><img src="./img/chef/Rahul Babu Shrestha.avif" alt="Chef Rahul"><div class="chef-info"><h4>Rahul Babu</h4><span>Festival Special</span></div></div>
-                            <button class="btn-view" onclick="openModal('selroti')"><ion-icon name="restaurant-outline"></ion-icon> View Recipe</button>
+                            <div class="meal-actions">
+                                <?php if($unlocked): ?>
+                                <button class="btn-view" onclick="openModal('selroti')"><ion-icon name="restaurant-outline"></ion-icon> View</button>
+                                <?php else: ?>
+                                <button class="btn-view locked" onclick="alert('🔒 Locked! Please upgrade to Complete Plan to view recipes.')"><ion-icon name="lock-closed-outline"></ion-icon> Locked</button>
+                                <?php endif; ?>
+                                <button class="btn-add" onclick="addToCart('Sel Roti', 200)"><ion-icon name="cart-outline"></ion-icon> Add Rs.200</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-        <?php endif; ?>
 
     </main>
 
     <div id="recipeModal" class="modal-overlay">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            
+            <span class="close-btn" onclick="closeRecipeModal()">&times;</span>
             <div class="modal-header">
                 <h2 class="modal-title" id="m-title"></h2>
                 <p class="modal-subtitle" id="m-chef"></p>
@@ -344,95 +415,183 @@ if (isset($_SESSION['user_id'])) {
         </div>
     </div>
 
-    <script>
-        // Use EventListener to ensure DOM is ready and close button binds correctly
-        document.addEventListener("DOMContentLoaded", function() {
+    <div id="sticky-cart">
+        <span style="font-size: 1.6rem; font-weight: 700; color: #333;">Total: Rs. <span id="sticky-total">0</span></span>
+        <button class="btn-add" style="flex:0; padding:10px 30px;" onclick="toggleCartModal()">View Cart</button>
+    </div>
+
+    <div id="cartModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-btn" onclick="toggleCartModal()">&times;</span>
+            <h2 class="heading-secondary" style="margin-bottom:20px;">Your Cart</h2>
             
-            // DOM ELEMENTS
-            const modal = document.getElementById('recipeModal');
-            const closeBtn = document.querySelector('.close-btn');
-            const mTitle = document.getElementById('m-title');
-            const mChef = document.getElementById('m-chef');
-            const mIng = document.getElementById('m-ing');
-            const mSteps = document.getElementById('m-steps');
+            <ul id="cart-list-container" class="cart-list"></ul>
+            
+            <p style="font-size:1.8rem; font-weight:bold; margin-bottom:20px; color:#e67e22;">Total: Rs. <span id="modal-cart-total">0</span></p>
 
-            // RECIPE DATA
-            const recipes = {
-                'momo': { 
-                    title: "Secret Jhol Momos", 
-                    chef: "By Chef Ram Sharan Thapa", 
-                    ingredients: ["500g Minced Meat", "Ginger Garlic Paste", "Timur (Szechuan Pepper)", "Momo Masala", "Flour Dough", "Roasted Tomatoes", "Sesame Seeds"], 
-                    steps: ["Mix meat with spices and let it rest for 30 mins.", "Roll dough into small circles.", "Wrap the filling in the dough.", "Steam for 15 mins.", "Blend roasted tomatoes and sesame for the sauce."] 
-                },
-                'dalbhat': { 
-                    title: "Thakali Dal Bhat", 
-                    chef: "By Chef Bishal Gurung", 
-                    ingredients: ["Black Lentils (Kalo Dal)", "Rice", "Jimbu (Himalayan Herb)", "Ghee", "Mustard Greens", "Gundruk"], 
-                    steps: ["Pressure cook lentils for 20 mins.", "Temper with Ghee and Jimbu.", "Cook rice until fluffy.", "Stir fry greens with garlic.", "Serve hot on a brass plate."] 
-                },
-                'thukpa': { 
-                    title: "Himalayan Thukpa", 
-                    chef: "By Chef Dorje Sherpa", 
-                    ingredients: ["Hand-pulled Noodles", "Bone Broth", "Veggies (Carrot, Cabbage)", "Soy Sauce", "Cumin Powder", "Green Chili"], 
-                    steps: ["Boil the bone broth for 4 hours.", "Boil noodles separately.", "Sauté veggies in a wok.", "Add broth to veggies.", "Mix in noodles and serve hot."] 
-                },
-                'newari': { 
-                    title: "Newari Samay Baji", 
-                    chef: "By Chef Rahul Babu Shrestha", 
-                    ingredients: ["Beaten Rice (Chiura)", "Grilled Meat (Choila)", "Ginger & Garlic", "Mustard Oil", "Black Soybeans", "Boiled Egg"], 
-                    steps: ["Marinate grilled meat with spices and mustard oil.", "Fry soybeans until crunchy.", "Mix spices with beaten rice (optional).", "Arrange all items beautifully on a leaf plate."] 
-                },
-                'sekuwa': { 
-                    title: "Dharan Sekuwa", 
-                    chef: "By Chef Ram Sharan Thapa", 
-                    ingredients: ["Goat or Pork Cubes", "Mustard Oil", "Cumin Powder", "Coriander Powder", "Timur", "Lemon Juice"], 
-                    steps: ["Mix all spices with mustard oil.", "Marinate meat for at least 4 hours.", "Skewer the meat tightly.", "Grill over charcoal fire until slightly charred."] 
-                },
-                'selroti': { 
-                    title: "Sel Roti & Aloo", 
-                    chef: "By Chef Rahul Babu Shrestha", 
-                    ingredients: ["Rice Flour", "Sugar", "Ghee", "Cardamom Powder", "Cooking Oil", "Water"], 
-                    steps: ["Mix rice flour, sugar, ghee, and water to make a semi-liquid batter.", "Let the batter rest for 1 hour.", "Pour batter in a ring shape into hot oil.", "Fry until golden brown on both sides."] 
-                }
-            };
-
-            // OPEN FUNCTION (Attached to window so HTML buttons can see it)
-            window.openModal = function(key) {
-                const data = recipes[key]; 
-                if(!data) return;
-
-                mTitle.innerText = data.title; 
-                mChef.innerText = data.chef;
+            <form action="recipes.php" method="POST" id="checkout-form" style="display:none; text-align:left;">
                 
-                // Fill Ingredients
-                mIng.innerHTML = ""; 
-                data.ingredients.forEach(i => mIng.innerHTML += `<li><ion-icon name="checkmark-outline"></ion-icon> ${i}</li>`);
+                <label style="font-size:1.4rem; color:#555;">Full Name</label>
+                <input type="text" name="full_name" required style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
                 
-                // Fill Steps
-                mSteps.innerHTML = ""; 
-                data.steps.forEach((s, i) => mSteps.innerHTML += `<div class="step-box"><h4>Step ${i+1}</h4><p>${s}</p></div>`);
-                
-                modal.style.display = 'flex';
-            };
+                <label style="font-size:1.4rem; color:#555;">Email</label>
+                <input type="email" name="email" required style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
 
-            // CLOSE FUNCTION
-            function closeModalFunc() {
-                modal.style.display = 'none';
+                <label style="font-size:1.4rem; color:#555;">Phone Number</label>
+                <input type="tel" name="phone" placeholder="98XXXXXXXX" required style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+
+                <input type="hidden" name="location_coords" id="location_coords">
+                <input type="hidden" name="hidden_order_items" id="hidden_order_items">
+
+                <button type="button" class="btn-location" onclick="getKathmanduLocation()">
+                    <ion-icon name="location-outline"></ion-icon> Verify Location (Kathmandu Only)
+                </button>
+                <p id="loc-status" style="font-size:1.4rem; color:red; margin-bottom:10px; text-align:center; font-weight:bold;"></p>
+
+                <button type="submit" class="btn-add" id="btn-submit-order" disabled style="background-color:#ccc; width:100%;">Confirm Order</button>
+            </form>
+            
+            <button id="btn-show-checkout" class="btn-add" onclick="showCheckout()" style="width:100%;">Proceed to Checkout</button>
+        </div>
+    </div>
+
+    <script>
+        // --- RECIPE DATA & MODAL LOGIC ---
+        const recipes = {
+            'momo': { title: "Secret Jhol Momos", chef: "By Chef Ram Sharan Thapa", ingredients: ["500g Minced Meat", "Ginger Garlic Paste", "Timur (Szechuan Pepper)", "Momo Masala", "Flour Dough", "Roasted Tomatoes", "Sesame Seeds"], steps: ["Mix meat with spices and let it rest for 30 mins.", "Roll dough into small circles.", "Wrap the filling in the dough.", "Steam for 15 mins.", "Blend roasted tomatoes and sesame for the sauce."] },
+            'dalbhat': { title: "Thakali Dal Bhat", chef: "By Chef Bishal Gurung", ingredients: ["Black Lentils (Kalo Dal)", "Rice", "Jimbu (Himalayan Herb)", "Ghee", "Mustard Greens", "Gundruk"], steps: ["Pressure cook lentils for 20 mins.", "Temper with Ghee and Jimbu.", "Cook rice until fluffy.", "Stir fry greens with garlic.", "Serve hot on a brass plate."] },
+            'thukpa': { title: "Himalayan Thukpa", chef: "By Chef Dorje Sherpa", ingredients: ["Hand-pulled Noodles", "Bone Broth", "Veggies (Carrot, Cabbage)", "Soy Sauce", "Cumin Powder", "Green Chili"], steps: ["Boil the bone broth for 4 hours.", "Boil noodles separately.", "Sauté veggies in a wok.", "Add broth to veggies.", "Mix in noodles and serve hot."] },
+            'newari': { title: "Newari Samay Baji", chef: "By Chef Rahul Babu Shrestha", ingredients: ["Beaten Rice (Chiura)", "Grilled Meat (Choila)", "Ginger & Garlic", "Mustard Oil", "Black Soybeans", "Boiled Egg"], steps: ["Marinate grilled meat with spices and mustard oil.", "Fry soybeans until crunchy.", "Mix spices with beaten rice (optional).", "Arrange all items beautifully on a leaf plate."] },
+            'sekuwa': { title: "Dharan Sekuwa", chef: "By Chef Ram Sharan Thapa", ingredients: ["Goat or Pork Cubes", "Mustard Oil", "Cumin Powder", "Coriander Powder", "Timur", "Lemon Juice"], steps: ["Mix all spices with mustard oil.", "Marinate meat for at least 4 hours.", "Skewer the meat tightly.", "Grill over charcoal fire until slightly charred."] },
+            'selroti': { title: "Sel Roti & Aloo", chef: "By Chef Rahul Babu Shrestha", ingredients: ["Rice Flour", "Sugar", "Ghee", "Cardamom Powder", "Cooking Oil", "Water"], steps: ["Mix rice flour, sugar, ghee, and water to make a semi-liquid batter.", "Let the batter rest for 1 hour.", "Pour batter in a ring shape into hot oil.", "Fry until golden brown on both sides."] }
+        };
+
+        const modal = document.getElementById('recipeModal');
+        const mTitle = document.getElementById('m-title');
+        const mChef = document.getElementById('m-chef');
+        const mIng = document.getElementById('m-ing');
+        const mSteps = document.getElementById('m-steps');
+
+        window.openModal = function(key) {
+            const data = recipes[key]; 
+            if(!data) return;
+            mTitle.innerText = data.title; 
+            mChef.innerText = data.chef;
+            mIng.innerHTML = ""; 
+            data.ingredients.forEach(i => mIng.innerHTML += `<li><ion-icon name="checkmark-outline"></ion-icon> ${i}</li>`);
+            mSteps.innerHTML = ""; 
+            data.steps.forEach((s, i) => mSteps.innerHTML += `<div class="step-box"><h4>Step ${i+1}</h4><p>${s}</p></div>`);
+            modal.style.display = 'flex';
+        };
+
+        window.closeRecipeModal = function() {
+            modal.style.display = 'none';
+        }
+
+        // --- CART & LOCATION LOGIC ---
+        let cart = [];
+
+        window.addToCart = function(name, price) {
+            cart.push({name, price});
+            updateCartUI();
+        }
+
+        window.removeFromCart = function(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const list = document.getElementById('cart-list-container');
+            const totalEl = document.getElementById('modal-cart-total');
+            const stickyTotal = document.getElementById('sticky-total');
+            const stickyCart = document.getElementById('sticky-cart');
+            
+            list.innerHTML = "";
+            let sum = 0;
+
+            if (cart.length > 0) {
+                stickyCart.style.display = 'flex';
+                cart.forEach((item, idx) => {
+                    sum += item.price;
+                    list.innerHTML += `
+                        <li class="cart-item">
+                            <span>${item.name}</span>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <strong>Rs. ${item.price}</strong>
+                                <button class="btn-remove" onclick="removeFromCart(${idx})">X</button>
+                            </div>
+                        </li>`;
+                });
+            } else {
+                stickyCart.style.display = 'none';
+                list.innerHTML = "<li style='text-align:center; padding:10px; color:#888;'>Cart is empty</li>";
+            }
+            
+            totalEl.innerText = sum;
+            stickyTotal.innerText = sum;
+
+            // Update hidden input for form
+            let orderString = cart.map(i => i.name + " (" + i.price + ")").join(", ");
+            orderString += " | Total: Rs." + sum;
+            document.getElementById('hidden_order_items').value = orderString;
+        }
+
+        window.toggleCartModal = function() {
+            const cm = document.getElementById('cartModal');
+            cm.style.display = (cm.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        window.showCheckout = function() {
+            if(cart.length === 0) { alert("Cart is empty!"); return; }
+            document.getElementById('btn-show-checkout').style.display = 'none';
+            document.getElementById('checkout-form').style.display = 'block';
+        }
+
+        // --- LOCATION VERIFICATION (KATHMANDU) ---
+        window.getKathmanduLocation = function() {
+            const status = document.getElementById('loc-status');
+            const btn = document.getElementById('btn-submit-order');
+
+            if (!navigator.geolocation) {
+                status.innerText = "Geolocation not supported.";
+                return;
             }
 
-            // ATTACH EVENT LISTENER (Better than onclick)
-            if(closeBtn) {
-                closeBtn.addEventListener('click', closeModalFunc);
-            }
+            status.innerText = "Locating...";
+            status.style.color = "#e67e22";
 
-            // CLICK OUTSIDE TO CLOSE
-            window.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    closeModalFunc();
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                // Kathmandu Approximate Bounds
+                const isKathmandu = (lat >= 27.60 && lat <= 27.85) && (lng >= 85.20 && lng <= 85.55);
+
+                if (isKathmandu) {
+                    document.getElementById('location_coords').value = lat + "," + lng;
+                    status.innerText = "Location Verified: Kathmandu ✅";
+                    status.style.color = "green";
+                    btn.disabled = false;
+                    btn.style.backgroundColor = "#e67e22";
+                } else {
+                    status.innerText = "Out of delivery zone. Kathmandu Only ❌";
+                    status.style.color = "red";
+                    btn.disabled = true;
+                    btn.style.backgroundColor = "#ccc";
                 }
+
+            }, () => {
+                status.innerText = "Location Access Denied.";
+                status.style.color = "red";
             });
+        }
 
-        });
+        // Close modals on outside click
+        window.onclick = function(event) {
+            if (event.target == modal) { closeRecipeModal(); }
+            if (event.target == document.getElementById('cartModal')) { toggleCartModal(); }
+        }
     </script>
     <footer class="footer"><div class="container" style="text-align: center;"><p class="copyright">Copyright &copy; 2025 by Omnifood Nepal.</p></div></footer>
 </body>

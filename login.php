@@ -1,5 +1,6 @@
 <?php
 session_start();
+include 'connect.php'; // Connected to database
 
 $error = "";
 
@@ -9,11 +10,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = isset($_POST['username']) ? trim($_POST['username']) : '';
     $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-    // --- HARDCODED ADMIN CREDENTIALS ---
+    // --- 1. HARDCODED ADMIN CREDENTIALS ---
     // User: admin
     // Pass: omnifood
     if ($username === 'admin' && $password === 'omnifood') {
         $_SESSION['loggedin'] = true;
+        $_SESSION['admin_name'] = "Admin";
+        header("Location: admin.php");
+        exit;
+    }
+
+    // --- 2. CHECK DATABASE (SIGN UP USERS) ---
+    // Connects login with the "Sign Up" data in 'cafe' table
+    // Treat Name as Username and Email as Password
+    $stmt = $conn->prepare("SELECT * FROM cafe WHERE name = ? AND email = ?");
+    $stmt->bind_param("ss", $username, $password);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $_SESSION['loggedin'] = true;
+        // Store the user's name in session
+        $_SESSION['admin_name'] = isset($row['Name']) ? $row['Name'] : $row['name'];
         header("Location: admin.php");
         exit;
     } else {
@@ -65,34 +84,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .logo ion-icon { color: var(--primary); font-size: 32px; }
 
         .form-group { margin-bottom: 20px; text-align: left; }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            color: #555;
-        }
-
+        label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 5px; color: #555; }
         input {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 8px;
-            font-family: inherit;
             font-size: 16px;
             box-sizing: border-box;
             transition: 0.3s;
         }
         input:focus { border-color: var(--primary); outline: none; }
-        
+
         button {
             width: 100%;
-            padding: 15px;
             background-color: var(--primary);
             color: white;
+            padding: 12px;
             border: none;
-            border-radius: 9px;
+            border-radius: 8px;
             font-size: 18px;
             font-weight: 600;
             cursor: pointer;
@@ -124,21 +134,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         <form method="POST" action="login.php">
             <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter admin username" required>
+                <label for="username">Name (Username)</label>
+                <input type="text" id="username" name="username" placeholder="Enter name" required>
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter password" required>
+                <label for="password">Email (Password)</label>
+                <input type="password" id="password" name="password" placeholder="Enter email" required>
             </div>
 
             <button type="submit">Log In</button>
         </form>
-
-        <p style="margin-top: 20px; font-size: 14px; color: #888;">
-            <a href="index.php" style="color:#888; text-decoration:none;">&larr; Back to Website</a>
-        </p>
     </div>
 
 </body>
