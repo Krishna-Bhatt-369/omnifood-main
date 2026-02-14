@@ -76,8 +76,7 @@
         <p>If you have any questions about this Privacy Policy, please contact us at:</p>
         <p>
             <strong>Omnifood Inc.</strong><br>
-            623 Harrison St., 2nd Floor<br>
-            San Francisco, CA 94107<br>
+            Kathmandu, Nepal, 2nd Floor<br>
             Email: hello@omnifood.com
         </p>
 

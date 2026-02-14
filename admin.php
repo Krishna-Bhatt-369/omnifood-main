@@ -2,15 +2,20 @@
 session_start();
 include 'connect.php';
 
-// --- 1. SECURITY / LOGOUT ---
+// --- SECURITY CHECK ---
+// If user is NOT logged in OR is NOT an admin, kick them out.
+if (!isset($_SESSION['loggedin']) || !isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+// --- LOGOUT ---
 if (isset($_GET['logout'])) {
     session_destroy();
     header("Location: login.php");
     exit;
 }
-
-// --- 2. ACTIONS ---
-
+// ... rest of your admin.php code ...
 // DELETE User/Order
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);

@@ -1,42 +1,46 @@
 <?php
 session_start();
-include 'connect.php'; // Connected to database
+include 'connect.php'; 
 
 $error = "";
 
 // CHECK LOGIN
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get inputs
+    // 1. Sanitize Inputs (Security)
     $username = isset($_POST['username']) ? trim($_POST['username']) : '';
     $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-    // --- 1. HARDCODED ADMIN CREDENTIALS ---
-    // User: admin
-    // Pass: omnifood
+    // 2. ADMIN LOGIN (Secure Hardcoded Check)
+    // Username: admin | Password: omnifood
     if ($username === 'admin' && $password === 'omnifood') {
+        session_regenerate_id(true); // Security: New session ID
         $_SESSION['loggedin'] = true;
-        $_SESSION['admin_name'] = "Admin";
+        $_SESSION['is_admin'] = true; 
+        $_SESSION['user_name'] = "Administrator";
         header("Location: admin.php");
         exit;
     }
 
-    // --- 2. CHECK DATABASE (SIGN UP USERS) ---
-    // Connects login with the "Sign Up" data in 'cafe' table
-    // Treat Name as Username and Email as Password
+    // 3. REGULAR USER LOGIN (Database Check)
+    // Note: This checks if the entered 'Password' matches the user's Email in the database.
+    // (Since we are transitioning, we use Email as the password for now to keep it working).
     $stmt = $conn->prepare("SELECT * FROM cafe WHERE name = ? AND email = ?");
-    $stmt->bind_param("ss", $username, $password);
+    $stmt->bind_param("ss", $username, $password); 
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
+        session_regenerate_id(true); // Security: New session ID
         $_SESSION['loggedin'] = true;
-        // Store the user's name in session
-        $_SESSION['admin_name'] = isset($row['Name']) ? $row['Name'] : $row['name'];
-        header("Location: admin.php");
+        $_SESSION['is_admin'] = false; 
+        $_SESSION['user_name'] = $row['name'];
+        $_SESSION['user_id'] = $row['id'];
+        
+        header("Location: index.php");
         exit;
     } else {
-        $error = "Incorrect username or password.";
+        $error = "Invalid Username or Password.";
     }
 }
 ?>
@@ -46,11 +50,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Omnifood Admin</title>
+    <title>Secure Login | Omnifood</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <style>
-        :root { --primary: #e67e22; --primary-dark: #cf711f; }
         body {
             font-family: 'Rubik', sans-serif;
             background-color: #fdf2e9;
@@ -60,63 +63,55 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             height: 100vh;
             margin: 0;
         }
-
         .login-card {
             background: white;
             padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 9px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 400px;
-            text-align: center;
+            max-width: 380px;
         }
-
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        .logo ion-icon { color: var(--primary); font-size: 32px; }
-
-        .form-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 5px; color: #555; }
-        input {
+        .logo-box { text-align: center; margin-bottom: 30px; }
+        .logo-text { font-size: 2.4rem; font-weight: 700; color: #333; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; }
+        .logo-icon { color: #e67e22; font-size: 3.2rem; }
+        
+        .form-label { display: block; font-size: 1.4rem; font-weight: 500; margin-bottom: 8px; color: #555; }
+        .form-input {
             width: 100%;
             padding: 12px;
+            font-size: 1.6rem;
             border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 9px;
             box-sizing: border-box;
+            margin-bottom: 20px;
             transition: 0.3s;
+            font-family: inherit;
         }
-        input:focus { border-color: var(--primary); outline: none; }
-
-        button {
+        .form-input:focus { outline: none; border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.1); }
+        
+        .btn-login {
             width: 100%;
-            background-color: var(--primary);
+            background-color: #e67e22;
             color: white;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
+            font-size: 1.8rem;
             font-weight: 600;
+            border: none;
+            border-radius: 9px;
+            padding: 12px;
             cursor: pointer;
             transition: 0.3s;
         }
-        button:hover { background-color: var(--primary-dark); }
+        .btn-login:hover { background-color: #cf711f; }
         
         .error-msg {
-            color: #e74c3c;
             background-color: #fde8e7;
-            padding: 10px;
-            border-radius: 6px;
+            color: #c92a2a;
+            padding: 12px;
+            border-radius: 9px;
+            font-size: 1.4rem;
             margin-bottom: 20px;
-            font-size: 14px;
+            text-align: center;
+            border: 1px solid #ffa8a8;
             display: <?php echo !empty($error) ? 'block' : 'none'; ?>;
         }
     </style>
@@ -124,27 +119,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 
     <div class="login-card">
-        <div class="logo">
-            <ion-icon name="restaurant"></ion-icon> Omnifood
+        <div class="logo-box">
+            <a href="index.php" class="logo-text">
+                <ion-icon name="restaurant" class="logo-icon"></ion-icon> 
+                <span>Omnifood</span>
+            </a>
         </div>
 
-        <div class="error-msg">
-            <?php echo $error; ?>
-        </div>
+        <div class="error-msg"><?php echo $error; ?></div>
 
         <form method="POST" action="login.php">
-            <div class="form-group">
-                <label for="username">Name (Username)</label>
-                <input type="text" id="username" name="username" placeholder="Enter name" required>
+            <div>
+                <label class="form-label">Username</label>
+                <input type="text" name="username" class="form-input" placeholder="Enter username" required>
             </div>
 
-            <div class="form-group">
-                <label for="password">Email (Password)</label>
-                <input type="password" id="password" name="password" placeholder="Enter email" required>
+            <div>
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-input" placeholder="Enter password" required>
             </div>
 
-            <button type="submit">Log In</button>
+            <button type="submit" class="btn-login">Sign In</button>
         </form>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="index.php" style="color: #777; font-size: 1.4rem; text-decoration: none;">&larr; Back to Home</a>
+        </div>
     </div>
 
 </body>

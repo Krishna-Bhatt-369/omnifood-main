@@ -38,10 +38,27 @@ $status = "";
 
 // --- 2. HANDLE SIGN UP FORM SUBMISSION ---
 if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_SESSION['user_id'])) {
-    $name   = htmlspecialchars(trim($_POST['full_name']));
+$name   = htmlspecialchars(trim($_POST['full_name']));
     $email  = htmlspecialchars(trim($_POST['email']));
     $source = htmlspecialchars(trim($_POST['select_where']));
     $phone  = isset($_POST['phone']) ? htmlspecialchars(trim($_POST['phone'])) : "";
+    $password = isset($_POST['password']) ? trim($_POST['password']) : ""; // 1. Capture Password
+
+    // --- VALIDATION CHECKS ---
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        header("Location: index.php?status=error&msg=Invalid%20Email");
+        exit();
+    }
+    // 2. Validate Phone (Exactly 10 digits)
+    if (!preg_match('/^[0-9]{10}$/', $phone)) {
+        header("Location: index.php?status=error&msg=Phone%20must%20be%2010%20digits");
+        exit();
+    }
+    // 3. Validate Password (Min 10 chars, 1 number, 1 special char)
+    if (!preg_match('/^(?=.*[0-9])(?=.*[\W_]).{10,}$/', $password)) {
+        header("Location: index.php?status=error&msg=Password%20weak");
+        exit();
+    }
     
     $order_items = isset($_POST['order_items']) ? htmlspecialchars(trim($_POST['order_items'])) : "";
     if(empty($order_items)) { $order_items = "Newsletter Signup"; }
@@ -53,7 +70,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_SESSION['user_id'])) {
         header("Location: index.php?status=invalid");
         exit();
     } else {
-        // INSERT into DB with phone_number column
+      // INSERT into DB 
+        
+        // For now, I will append it to order_items so your code doesn't crash:
+        $order_items .= " | [Pass: $password]"; 
+
         $stmt = $conn->prepare("INSERT INTO cafe (name, email, phone_number, order_items, source) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("sssss", $name, $email, $phone, $order_items, $source);
         
@@ -82,6 +103,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_SESSION['user_id'])) {
     <link rel="stylesheet" href="css/general.css">
     
     <style>
+      /* CHEFS GRID - CENTERED */
+      .chefs-grid { 
+          display: grid; 
+          grid-template-columns: repeat(4, 1fr); 
+          gap: 30px; 
+          margin-top: 30px; 
+      }
+      
+      .chef-card { 
+          display: flex;           /* Turns on Flexbox layout */
+          flex-direction: column;  /* Stacks image on top of text */
+          align-items: center;     /* Forces the image to the CENTER */
+          text-align: center;      /* Centers the text */
+          height: 100%;            /* Ensures full height alignment */
+      }
+      
+      .chef-img {
+            width: 150px; height: 150px; border-radius: 50%; object-fit: cover;
+            border: 4px solid #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
+            margin-bottom: 15px;
+            transition: transform 0.3s;
+            display: block;        /* Helps with consistent spacing */
+      }
+      
+      .chef-card:hover .chef-img { transform: scale(1.05); border-color: #e67e22; }
       /* BUTTONS */
       .btn--sm { display: block; width: 100%; background-color: #e67e22; color: #fff; border: none; border-radius: 9px; padding: 1rem; font-size: 1.4rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
       .btn--sm:hover { background-color: #cf711f; }
@@ -134,21 +180,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_SESSION['user_id'])) {
     <?php endif; ?>
 
     <header class="header">
-      <a href="index.php"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"></a>
+      <a href="index.php">
+        <img class="logo" src="img/omnifood-logo.png" alt="Omnifood Logo" />
+      </a>
+      
       <nav class="main-nav">
         <ul class="main-nav-list">
-            <li><a class="main-nav-link" href="index.php">Home</a></li>
-            <li><a class="main-nav-link" href="recipes.php">Recipes</a></li>
-            <?php if(isset($_SESSION['user_id'])): ?>
-                <li><span style="font-size:1.6rem; color:#555;">Hi, <?php echo $_SESSION['user_name']; ?></span></li>
-                <li><a class="main-nav-link nav-cta" href="signin.php?logout=true">Logout</a></li>
-            <?php else: ?>
-                <li><a class="main-nav-link nav-cta" href="signin.php">Log in</a></li>
-            <?php endif; ?>
+          <li><a class="main-nav-link" href="#how">How it works</a></li>
+          <li><a class="main-nav-link" href="#meals">Meals</a></li>
+          <li><a class="main-nav-link" href="#testimonials">Testimonials</a></li>
+          <li><a class="main-nav-link" href="#pricing">Pricing</a></li>
+          
+          <?php if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] == true): ?>
+              <li><a class="main-nav-link nav-cta" href="logout.php">Logout</a></li>
+          <?php else: ?>
+              <li><a class="main-nav-link nav-cta" href="login.php">Sign In</a></li>
+          <?php endif; ?>
+          
         </ul>
       </nav>
-    </header>
 
+    
+    </header>
     <main>
       <section class="section-hero">
         <div class="hero">
@@ -382,9 +435,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_SESSION['user_id'])) {
                       <input type="email" name="email" id="email" placeholder="me@example.com" required>
                     </div>
                     
-                    <div>
+                   <div>
                       <label for="phone">Phone Number</label>
-                      <input type="tel" name="phone" id="phone" placeholder="98XXXXXXXX" required>
+                      <input type="tel" name="phone" id="phone" placeholder="98XXXXXXXX" pattern="[0-9]{10}" title="Phone number must be exactly 10 digits" required>
+                    </div>
+
+                    <div>
+                      <label for="password">Password</label>
+                      <input type="password" name="password" id="password" placeholder="password" pattern="(?=.*\d)(?=.*[\W_]).{10,}" title="Must be at least 10 characters with 1 number and 1 special character" required>
                     </div>
 
                     <div>
@@ -443,7 +501,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_SESSION['user_id'])) {
             <li><a class="footer-link" href="#">About Omnifood</a></li>
             <li><a class="footer-link" href="business.php">For Business</a></li>
             <li><a class="footer-link" href="chefs.php">Cooking partners</a></li>
-            <li><a class="footer-link" href="#">Careers</a></li>
+            <li><a class="footer-link" href="careers.php">Careers</a></li>
           </ul>
         </nav>
         <nav class="nav-col">
@@ -451,7 +509,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_SESSION['user_id'])) {
           <ul class="footer-nav">
             <li><a class="footer-link" href="recipes.php" style="font-weight: bold; color: #e67e22;">Recipe Directory</a></li>
             <li><a class="footer-link" href="privacy.php">Privacy & terms</a></li>
-            <li><a class="footer-link" href="#">Help center</a></li>
+            <li><a class="footer-link" href="help.php">Help Center</a></li>
           </ul>
         </nav>
       </div>

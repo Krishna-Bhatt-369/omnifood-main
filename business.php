@@ -1,4 +1,5 @@
 <?php
+session_start(); /* 1. START SESSION */
 include 'connect.php';
 
 $message = "";
@@ -9,19 +10,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $company_name = htmlspecialchars(trim($_POST['company_name']));
     $contact_person = htmlspecialchars(trim($_POST['contact_person']));
     $email = htmlspecialchars(trim($_POST['email']));
+    $phone = htmlspecialchars(trim($_POST['phone'])); /* 2. CAPTURE PHONE */
     $employees = htmlspecialchars(trim($_POST['employees']));
     $requirements = htmlspecialchars(trim($_POST['requirements']));
     
-    // Combine fields to fit into your existing DB structure (name, email, order_items, source)
+    // Combine fields to fit into your existing DB structure
     $full_name = $contact_person . " (" . $company_name . ")";
-    $order_details = "Business Inquiry: " . $employees . " employees. Req: " . $requirements;
+    // Added Phone to details
+    $order_details = "Business Inquiry: " . $employees . " employees. Req: " . $requirements . " | Ph: " . $phone;
     $source = "Business Page";
 
+    // --- VALIDATION CHECKS ---
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         header("Location: business.php?status=invalid");
         exit();
-    } else {
-        $stmt = $conn->prepare("INSERT INTO cafe (name, email, order_items, source) VALUES (?, ?, ?, ?)");
+    } 
+    // 3. PHONE VALIDATION (Must be 10 digits)
+    elseif (!preg_match('/^[0-9]{10}$/', $phone)) {
+        header("Location: business.php?status=error&msg=Phone%20number%20must%20be%20exactly%2010%20digits");
+        exit();
+    } 
+    else {
+        // We use 'new' status so it shows in Admin
+        $stmt = $conn->prepare("INSERT INTO cafe (name, email, order_items, source, status) VALUES (?, ?, ?, ?, 'new')");
         $stmt->bind_param("ssss", $full_name, $email, $order_details, $source);
         
         if ($stmt->execute()) {
@@ -94,7 +105,12 @@ if (isset($_GET['status'])) {
                 <li><a class="main-nav-link" href="index.php">Home</a></li>
                 <li><a class="main-nav-link" href="index.php#how">How it works</a></li>
                 <li><a class="main-nav-link" href="recipes.php">Recipes</a></li>
-                <li><a class="main-nav-link nav-cta" href="#contact">Contact Sales</a></li>
+                
+                <?php if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] == true): ?>
+                    <li><a class="main-nav-link nav-cta" href="logout.php">Logout</a></li>
+                <?php else: ?>
+                    <li><a class="main-nav-link nav-cta" href="login.php">Sign In</a></li>
+                <?php endif; ?>
             </ul>
         </nav>
     </header>
@@ -236,15 +252,21 @@ if (isset($_GET['status'])) {
                                 <label for="email">Work Email</label>
                                 <input type="email" id="email" name="email" placeholder="hr@company.com" required>
                             </div>
+                            
                             <div>
-                                <label for="employees">No. of Employees</label>
-                                <select id="employees" name="employees">
-                                    <option value="1-10">1-10</option>
-                                    <option value="11-50">11-50</option>
-                                    <option value="50-100">50-100</option>
-                                    <option value="100+">100+</option>
-                                </select>
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" name="phone" placeholder="98XXXXXXXX" pattern="[0-9]{10}" title="Please enter exactly 10 digits" required>
                             </div>
+                        </div>
+
+                        <div>
+                            <label for="employees">No. of Employees</label>
+                            <select id="employees" name="employees">
+                                <option value="1-10">1-10</option>
+                                <option value="11-50">11-50</option>
+                                <option value="50-100">50-100</option>
+                                <option value="100+">100+</option>
+                            </select>
                         </div>
 
                         <div>
