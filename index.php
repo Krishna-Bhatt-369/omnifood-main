@@ -72,7 +72,7 @@ $name   = htmlspecialchars(trim($_POST['full_name']));
     } else {
       // INSERT into DB 
         
-        // For now, I will append it to order_items so your code doesn't crash:
+        
         $order_items .= " | [Pass: $password]"; 
 
         $stmt = $conn->prepare("INSERT INTO cafe (name, email, phone_number, order_items, source) VALUES (?, ?, ?, ?, ?)");
@@ -95,7 +95,7 @@ $name   = htmlspecialchars(trim($_POST['full_name']));
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Omnifood Nepal &mdash; Never cook again!</title>
+    <title>Sirifood Nepal &mdash; Never cook again!</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
@@ -181,7 +181,7 @@ $name   = htmlspecialchars(trim($_POST['full_name']));
 
     <header class="header">
       <a href="index.php">
-        <img class="logo" src="img/omnifood-logo.png" alt="Omnifood Logo" />
+        <img class="logo" src="img/sirifood-logo.png" alt="sirifood Logo" />
       </a>
       
       <nav class="main-nav">
@@ -252,7 +252,7 @@ $name   = htmlspecialchars(trim($_POST['full_name']));
           <div class="step-text-box">
             <p class="step-number">01</p>
             <h3 class="heading-tertiary">Tell us what you like:</h3>
-            <p class="step-description">Omnifood AI creates a personalized weekly plan. It adapts to your taste, whether you love spicy Momos or mild Thukpa.</p>
+            <p class="step-description">Sirifood AI creates a personalized weekly plan. It adapts to your taste, whether you love spicy Momos or mild Thukpa.</p>
           </div>
           <div class="step-img-box"><img class="step-img" src="./img/app/app-screen-1.png" alt="App screen 1" /></div>
           
@@ -275,7 +275,7 @@ $name   = htmlspecialchars(trim($_POST['full_name']));
       <section class="section-meals" id="meals">
         <div class="container center-text">
             <span class="subheading">Meals</span>
-            <h2 class="heading-secondary">Omnifood AI chooses from 5,000+ recipes</h2>
+            <h2 class="heading-secondary">Sirifood AI chooses from 5,000+ recipes</h2>
         </div>
         <div class="container grid grid--3-cols margin-bottom-md">
             <div class="meal">
@@ -470,20 +470,20 @@ $name   = htmlspecialchars(trim($_POST['full_name']));
     <footer class="footer">
       <div class="container grid grid--footer">
         <div class="logo-col">
-          <a href="#" class="footer-logo"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"></a>
+          <a href="#" class="footer-logo"><img class="logo" src="./img/sirifood-logo.png" alt="Sirifood Logo"></a>
           <ul class="social-links">
             <li><a class="footer-link" href="#"><ion-icon class="social-icon" name="logo-instagram"></ion-icon></a></li>
             <li><a class="footer-link" href="#"><ion-icon class="social-icon" name="logo-facebook"></ion-icon></a></li>
             <li><a class="footer-link" href="#"><ion-icon class="social-icon" name="logo-twitter"></ion-icon></a></li>
           </ul>
-          <p class="copyright">Copyright &copy; 2025 by Omnifood Nepal.</p>
+          <p class="copyright">Copyright &copy; 2025 by Sirifood Nepal.</p>
         </div>
         <div class="address-col">
           <p class="footer-heading">Contact</p>
           <address class="contacts">
             <p class="address">Kathmandu, Nepal</p>
             <p><a class="footer-link" href="tel:9800000000">980-000-0000</a></p>
-            <p><a class="footer-link" href="mailto:hello@omnifood.com">hello@omnifood.com</a></p>
+            <p><a class="footer-link" href="mailto:hello@sirifood.com">hello@sirifood.com</a></p>
           </address>
         </div>
         <nav class="nav-col">
@@ -498,7 +498,7 @@ $name   = htmlspecialchars(trim($_POST['full_name']));
         <nav class="nav-col">
           <p class="footer-heading">Company</p>
           <ul class="footer-nav">
-            <li><a class="footer-link" href="#">About Omnifood</a></li>
+            <li><a class="footer-link" href="#">About Sirifood</a></li>
             <li><a class="footer-link" href="business.php">For Business</a></li>
             <li><a class="footer-link" href="chefs.php">Cooking partners</a></li>
             <li><a class="footer-link" href="careers.php">Careers</a></li>

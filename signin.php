@@ -30,7 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Log In - Omnifood</title>
+    <title>Log In - Sirifood</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/general.css">
     <style>

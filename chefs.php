@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Our Cooking Partners - Omnifood Nepal</title>
+    <title>Our Cooking Partners - Sirifood Nepal</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <link rel="stylesheet" href="css/style.css">
@@ -103,7 +103,7 @@
 <body>
 
     <header class="header">
-        <a href="index.php"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"></a>
+        <a href="index.php"><img class="logo" src="./img/sirifood-logo.png" alt="Sirifood Logo"></a>
         <nav class="main-nav">
             <ul class="main-nav-list">
                 <li><a class="main-nav-link" href="index.php">Home</a></li>
@@ -120,7 +120,7 @@
                 <span class="subheading">Culinary Artists</span>
                 <h1 class="heading-primary">Meet the Masters Behind Your Meals</h1>
                 <p class="hero-description" style="margin: 0 auto; max-width: 800px;">
-                    At Omnifood Nepal, we don't just hire cooks. We partner with local legends who have spent decades perfecting their craft. From the mountains of Mustang to the streets of Kathmandu, here are the hands that feed you.
+                    At Sirifood Nepal, we don't just hire cooks. We partner with local legends who have spent decades perfecting their craft. From the mountains of Mustang to the streets of Kathmandu, here are the hands that feed you.
                 </p>
             </div>
         </section>
@@ -219,7 +219,7 @@
                     We are always looking for passionate chefs to join our cooking partner network. 
                     <br>Help us deliver authentic taste to thousands of customers.
                 </p>
-                <a href="index.php#contact" class="btn" style="background: white; color: #333;">Join Omnifood Partners</a>
+                <a href="careers.php" class="btn" style="background: white; color: #333;">Join Sirifood Partners</a>
             </div>
         </section>
 
@@ -228,8 +228,8 @@
     <footer class="footer">
         <div class="container grid grid--footer">
             <div class="logo-col">
-                <a href="#" class="footer-logo"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"></a>
-                <p class="copyright">Copyright &copy; 2025 by Omnifood Nepal.</p>
+                <a href="#" class="footer-logo"><img class="logo" src="./img/sirifood-logo.png" alt="Sirifood Logo"></a>
+                <p class="copyright">Copyright &copy; 2025 by Sirifood Nepal.</p>
             </div>
             <div class="address-col">
                 <p class="footer-heading">Contact</p>
@@ -241,7 +241,7 @@
             <nav class="nav-col">
                 <p class="footer-heading">Company</p>
                 <ul class="footer-nav">
-                    <li><a class="footer-link" href="index.php">About Omnifood</a></li>
+                    <li><a class="footer-link" href="index.php">About Sirifood</a></li>
                     <li><a class="footer-link" href="business.php">For Business</a></li>
                     <li><a class="footer-link" href="chefs.php" style="color: #e67e22; font-weight: bold;">Cooking partners</a></li>
                     <li><a class="footer-link" href="#">Careers</a></li>

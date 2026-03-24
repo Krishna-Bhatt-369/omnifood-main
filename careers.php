@@ -61,7 +61,7 @@ if (isset($_GET['status']) && $_GET['status'] === 'success') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Careers & Academy | Omnifood</title>
+    <title>Careers & Academy | Sirifood</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/general.css">
@@ -113,7 +113,7 @@ if (isset($_GET['status']) && $_GET['status'] === 'success') {
 <body>
 
     <header class="header">
-      <a href="index.php"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"></a>
+      <a href="index.php"><img class="logo" src="./img/sirifood-logo.png" alt="Sirifood Logo"></a>
       <nav class="main-nav">
         <ul class="main-nav-list">
             <li><a class="main-nav-link" href="index.php">Home</a></li>
@@ -133,7 +133,7 @@ if (isset($_GET['status']) && $_GET['status'] === 'success') {
     <main>
         <section class="section-career-hero">
             <div class="container">
-                <h1 class="career-hero-title">Join the Omnifood Academy</h1>
+                <h1 class="career-hero-title">Join the Sirifood Academy</h1>
                 <p class="career-hero-sub">From mastering the art of healthy cooking to creating complex coffee art. Grow your skills and teach the next generation of chefs.</p>
                 <a href="#apply" class="btn btn--full margin-right-sm" style="margin-top: 3rem;">Apply Now</a>
             </div>
@@ -204,7 +204,7 @@ if (isset($_GET['status']) && $_GET['status'] === 'success') {
         <section class="section-apply" id="apply">
             <div class="container center-text">
                 <h2 class="heading-secondary">Apply Today</h2>
-                <p>Start your journey with Omnifood.</p>
+                <p>Start your journey with Sirifood.</p>
             </div>
 
             <div class="container margin-top-md">
@@ -268,7 +268,7 @@ if (isset($_GET['status']) && $_GET['status'] === 'success') {
 
     <footer class="footer">
       <div class="container grid grid--footer">
-        <div class="logo-col"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"><p class="copyright">Copyright &copy; 2025 by Omnifood Nepal.</p></div>
+        <div class="logo-col"><img class="logo" src="./img/sirifood-logo.png" alt="Sirifood Logo"><p class="copyright">Copyright &copy; 2025 by Sirifood Nepal.</p></div>
         <div class="address-col"><p class="footer-heading">Contact</p><address class="contacts"><p>Kathmandu, Nepal</p><p>980-000-0000</p></address></div>
         <nav class="nav-col"><p class="footer-heading">Company</p><ul class="footer-nav"><li><a class="footer-link" href="business.php">For Business</a></li><li><a class="footer-link" href="careers.php">Careers</a></li></ul></nav>
         <nav class="nav-col"><p class="footer-heading">Resources</p><ul class="footer-nav"><li><a class="footer-link" href="recipes.php">Recipe Directory</a></li></ul></nav>

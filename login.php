@@ -11,8 +11,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
     // 2. ADMIN LOGIN (Secure Hardcoded Check)
-    // Username: admin | Password: omnifood
-    if ($username === 'admin' && $password === 'omnifood') {
+    // Username: admin | Password: sirifood
+    if ($username === 'admin' && $password === 'sirifood') {
         session_regenerate_id(true); // Security: New session ID
         $_SESSION['loggedin'] = true;
         $_SESSION['is_admin'] = true; 
@@ -23,7 +23,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // 3. REGULAR USER LOGIN (Database Check)
     // Note: This checks if the entered 'Password' matches the user's Email in the database.
-    // (Since we are transitioning, we use Email as the password for now to keep it working).
+
     $stmt = $conn->prepare("SELECT * FROM cafe WHERE name = ? AND email = ?");
     $stmt->bind_param("ss", $username, $password); 
     $stmt->execute();
@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Login | Omnifood</title>
+    <title>Secure Login | Sirifood</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <style>
@@ -122,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="logo-box">
             <a href="index.php" class="logo-text">
                 <ion-icon name="restaurant" class="logo-icon"></ion-icon> 
-                <span>Omnifood</span>
+                <span>Sirifood</span>
             </a>
         </div>
 

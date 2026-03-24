@@ -27,12 +27,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $payment = 'pending';
 
     // --- INSERT INTO DATABASE ---
-    // We try to insert into 'phone_number' column. 
-    // If your DB doesn't have that column yet, the text append above saves you.
-    // If your DB DOES have it, this saves it properly.
-    
+
     // Check if phone_number column exists in your specific setup or just use the 6 param version if unsure
-    // Assuming you created the column 'phone_number':
     $stmt = $conn->prepare("INSERT INTO cafe (name, email, phone_number, order_items, source, payment_status, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("sssssss", $name, $email, $phone, $order_items, $source, $payment, $status);
     
@@ -67,7 +63,7 @@ if (isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Nepali Cookbook - Omnifood</title>
+    <title>The Nepali Cookbook - Sirifood</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <link rel="stylesheet" href="css/style.css">
@@ -206,7 +202,7 @@ if (isset($_SESSION['user_id'])) {
 <body>
 
     <header class="header">
-        <a href="index.php"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"></a>
+        <a href="index.php"><img class="logo" src="./img/sirifood-logo.png" alt="Sirifood Logo"></a>
         <nav class="main-nav">
             <ul class="main-nav-list">
                 <li><a class="main-nav-link" href="index.php">Home</a></li>
@@ -593,6 +589,6 @@ if (isset($_SESSION['user_id'])) {
             if (event.target == document.getElementById('cartModal')) { toggleCartModal(); }
         }
     </script>
-    <footer class="footer"><div class="container" style="text-align: center;"><p class="copyright">Copyright &copy; 2025 by Omnifood Nepal.</p></div></footer>
+    <footer class="footer"><div class="container" style="text-align: center;"><p class="copyright">Copyright &copy; 2025 by Sirifood Nepal.</p></div></footer>
 </body>
 </html>

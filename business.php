@@ -60,7 +60,7 @@ if (isset($_GET['status'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omnifood for Business - Corporate Catering Nepal</title>
+    <title>Sirifood for Business - Corporate Catering Nepal</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <link rel="stylesheet" href="css/style.css">
@@ -99,7 +99,7 @@ if (isset($_GET['status'])) {
 <body>
 
     <header class="header">
-        <a href="index.php"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"></a>
+        <a href="index.php"><img class="logo" src="./img/sirifood-logo.png" alt="Sirifood Logo"></a>
         <nav class="main-nav">
             <ul class="main-nav-list">
                 <li><a class="main-nav-link" href="index.php">Home</a></li>
@@ -140,7 +140,7 @@ if (isset($_GET['status'])) {
 
         <section class="section-featured">
             <div class="container center-text">
-                <h2 class="heading-secondary">Why Omnifood for Business?</h2>
+                <h2 class="heading-secondary">Why Sirifood for Business?</h2>
                 <div class="grid grid--3-cols" style="margin-top: 4rem; text-align: left;">
                     <div>
                         <ion-icon name="trending-up-outline" style="font-size: 3rem; color: #e67e22; margin-bottom: 1rem;"></ion-icon>
@@ -285,8 +285,8 @@ if (isset($_GET['status'])) {
     <footer class="footer">
         <div class="container grid grid--footer">
             <div class="logo-col">
-                <a href="#" class="footer-logo"><img class="logo" src="./img/omnifood-logo.png" alt="Omnifood Logo"></a>
-                <p class="copyright">Copyright &copy; 2025 by Omnifood Nepal.</p>
+                <a href="#" class="footer-logo"><img class="logo" src="./img/sirifood-logo.png" alt="Sirifood Logo"></a>
+                <p class="copyright">Copyright &copy; 2025 by Sirifood Nepal.</p>
             </div>
             <div class="address-col">
                 <p class="footer-heading">Contact</p>
@@ -298,7 +298,7 @@ if (isset($_GET['status'])) {
             <nav class="nav-col">
                 <p class="footer-heading">Company</p>
                 <ul class="footer-nav">
-                    <li><a class="footer-link" href="index.php">About Omnifood</a></li>
+                    <li><a class="footer-link" href="index.php">About Sirifood</a></li>
                     <li><a class="footer-link" href="business.php" style="color: #e67e22; font-weight: bold;">For Business</a></li>
                     <li><a class="footer-link" href="index.php#chefs">Cooking partners</a></li>
                     <li><a class="footer-link" href="#">Careers</a></li>

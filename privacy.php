@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - Omnifood</title>
+    <title>Privacy Policy - Sirifood</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <style>
@@ -35,7 +35,7 @@
     <header>
         <div class="container">
             <a href="index.php" class="logo">
-                <ion-icon name="restaurant-outline"></ion-icon> Omnifood
+                <ion-icon name="restaurant-outline"></ion-icon> Sirifood
             </a>
         </div>
     </header>
@@ -44,7 +44,7 @@
         <h1>Privacy Policy</h1>
         <p>Last updated: October 2025</p>
 
-        <p>At Omnifood, we value your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website or use our food subscription services.</p>
+        <p>At Sirifood, we value your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website or use our food subscription services.</p>
 
         <h2>1. Information We Collect</h2>
         <p>We collect information that you provide directly to us, such as when you create an account, subscribe to a meal plan, or contact customer support.</p>
@@ -70,14 +70,14 @@
         <p>We do not sell your personal data. We may share information with trusted third-party service providers (e.g., delivery partners, payment processors) solely for the purpose of fulfilling your orders.</p>
 
         <h2>5. Your Rights</h2>
-        <p>You have the right to access, correct, or delete your personal data. If you wish to exercise these rights, please contact us at hello@omnifood.com.</p>
+        <p>You have the right to access, correct, or delete your personal data. If you wish to exercise these rights, please contact us at hello@sirifood.com.</p>
 
         <h2>6. Contact Us</h2>
         <p>If you have any questions about this Privacy Policy, please contact us at:</p>
         <p>
-            <strong>Omnifood Inc.</strong><br>
+            <strong>Sirifood Inc.</strong><br>
             Kathmandu, Nepal, 2nd Floor<br>
-            Email: hello@omnifood.com
+            Email: hello@sirifood.com
         </p>
 
         <a href="index.php" class="back-link">&larr; Back to Home</a>
@@ -85,7 +85,7 @@
 
     <footer>
         <div class="container">
-            Copyright &copy; 2025 Omnifood, Inc. All rights reserved.
+            Copyright &copy; 2025 Sirifood, Inc. All rights reserved.
         </div>
     </footer>
 

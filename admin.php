@@ -15,7 +15,7 @@ if (isset($_GET['logout'])) {
     header("Location: login.php");
     exit;
 }
-// ... rest of your admin.php code ...
+
 // DELETE User/Order
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
@@ -66,7 +66,7 @@ if (isset($_GET['mark_read_all'])) {
 // --- 3. EXPORT CSV ---
 if (isset($_GET['export'])) {
     header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="omnifood_data.csv"');
+    header('Content-Disposition: attachment; filename="sirifood_data.csv"');
     $output = fopen('php://output', 'w');
     
     // Added 'Phone' to the header row
@@ -119,7 +119,7 @@ $admin_name = isset($_SESSION['admin_name']) ? $_SESSION['admin_name'] : 'Admin'
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Omnifood</title>
+    <title>Admin Dashboard - Sirifood</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <style>
@@ -199,7 +199,7 @@ $admin_name = isset($_SESSION['admin_name']) ? $_SESSION['admin_name'] : 'Admin'
 
     <div class="sidebar">
         <div class="logo">
-            <ion-icon name="restaurant"></ion-icon> Omnifood
+            <ion-icon name="restaurant"></ion-icon> Sirifood
         </div>
         <a href="admin.php" class="nav-link active"><ion-icon name="grid-outline"></ion-icon> Dashboard</a>
         <a href="admin.php?export=true" class="nav-link"><ion-icon name="download-outline"></ion-icon> Export Data</a>

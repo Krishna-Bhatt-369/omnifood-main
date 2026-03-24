@@ -29,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Sign Up - Omnifood</title>
+    <title>Sign Up - Sirifood</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/general.css">
     <style>
