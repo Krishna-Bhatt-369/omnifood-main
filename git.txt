@@ -1,0 +1,8 @@
+First create git repo
+localise the git repo
+git init (to check if git is inistalled)
+git add . (to check the total files)
+git commit -am "initial commit" (to commit)
+git remote origin 'link' (to link)
+git commit -m "Second commit" (To commit changes)
+git push -u origin main (to push the code)
